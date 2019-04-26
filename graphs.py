@@ -6,14 +6,23 @@ import os
 from math import isclose, sqrt, sin, cos, acos
 
 class Vertex:
-	"""Vertex of the graph"""
+	"""Vertex of the graph. Contains coordinates and color"""
 	def __init__(self, x, y):
 		self.x = x
 		self.y = y
+		self.color = -1
 
 	def __str__(self):
-		""" (x, y) """
-		return '(' + str(self.x) + ', ' + str(self.y) + ')'
+		""" (x, y)[color] """
+
+		vertex = '({}, {})'.format(self.x, self.y, self.color)
+		color = '[{}]'.format(self.color)
+
+		if self.color != -1:
+			return vertex + color
+		else:
+			return vertex
+		
 
 	def __add__(self, v):
 		""" Sum of 2 vertices """
@@ -23,7 +32,7 @@ class Vertex:
 	def __eq__(self, other):
 		if not isinstance(other, Vertex):
 			return NotImplemented
-		return isclose(self.x, other.x, abs_tol=1.e-6) and isclose(self.y, other.y, abs_tol=1.e-6)
+		return isclose(self.x, other.x,rel_tol=0.05, abs_tol=1.e-4) and isclose(self.y, other.y, rel_tol=0.05, abs_tol=1.e-4)
 
 	def __hash__(self):
 		round_x = round(self.x)
@@ -55,8 +64,6 @@ class Vertex:
 		return sqrt(x2 + y2)
 
 
-
-
 class UnitDistanceGraph:
 	"""Graph with edges of distance 1"""
 
@@ -74,6 +81,10 @@ class UnitDistanceGraph:
 		self.n = self.graph.number_of_nodes()
 		self.m = self.graph.number_of_edges()
 
+	#	**********************************************************************
+	#								BASIC OPERATIONS
+	#	**********************************************************************
+
 	def add_node(self, v):
 		"""
 		Adds the node v to the graph
@@ -86,7 +97,7 @@ class UnitDistanceGraph:
 		This checks if both vertices are at unit distance. If they are, it adds the edge
 		to the graph. Else, it prints the error, specifying the distance they're at.
 		"""
-		if isUnitDist(v, w):
+		if self.isUnitDist(v, w):
 			self.graph.add_edge(v, w)
 			self.update()
 		else:
@@ -99,6 +110,28 @@ class UnitDistanceGraph:
 		self.graph.remove_node(v)
 		self.update()
 
+	def dist(self, v, w):
+		"""
+		Given two vertices, return its Euclidean distance
+		"""
+		x = v.x - w.x
+		x = x * x
+
+		y = v.y - w.y
+		y = y * y
+
+		return sqrt(x + y)
+
+	def isUnitDist(self, v, w):
+		"""
+		Given two vertices, check whether they're at unit distance from each other.
+		"""
+		return isclose(1, self.dist(v, w), rel_tol=0.05, abs_tol=1.e-4)
+
+
+	#	**********************************************************************
+	#								ADVANCED OPERATIONS
+	#	**********************************************************************
 
 	def trim(self, d):
 		"""
@@ -109,6 +142,69 @@ class UnitDistanceGraph:
 		for node in list(self.graph.nodes):
 			if node.getR() > d + abs_tol:
 				self.remove_node(node)
+
+	def union(self, G):
+		"""
+		Returns the union of this graph with G
+		"""
+		M = UnitDistanceGraph()
+		for v in self.graph.nodes:
+			for w in G.graph.nodes:
+				M.add_node(v)
+				M.add_node(w)
+
+		for v in M.graph.nodes:
+			for w in M.graph.nodes:
+				if self.isUnitDist(v, w):
+					M.add_edge(v, w)
+
+		return M.graph
+
+	def minkowskiSum(self, G):
+		"""
+		Minkowski sum of this graph and G.
+		"""
+		M = UnitDistanceGraph()
+
+		for v in self.graph.nodes:
+			for w in G.graph.nodes:
+				M.add_node(v)
+				M.add_node(w)
+				M.add_node(v + w)
+
+		for v in M.graph.nodes:
+			for w in M.graph.nodes:
+				if isUnitDist(v, w):
+					M.add_edge(v, w)
+
+		return M.graph
+
+	def trimMinkowski(self, G, d):
+		"""
+		Minkowski sum of this graph and G. Before adding the edges, it trims the graph
+		"""
+		M = UnitDistanceGraph()
+
+		for v in self.graph.nodes:
+			for w in G.graph.nodes:
+				M.add_node(v)
+				M.add_node(w)
+				M.add_node(v + w)
+
+		M.trim(d)
+
+		for v in M.graph.nodes:
+			for w in M.graph.nodes:
+				if isUnitDist(v, w):
+					M.add_edge(v, w)
+
+		return M.graph
+
+
+	#	**********************************************************************
+	#								READ/WRITE
+	#	**********************************************************************
+
 
 	def print_graph(self):
 		"""
@@ -233,80 +329,3 @@ class M(UnitDistanceGraph):
 
 		self.graph = minkowskiSum(H(), myW)
 		self.update()
-
-
-def dist(v, w):
-	"""
-	Given two vertices, return its Euclidean distance
-	"""
-	x = v.x - w.x
-	x = x * x
-
-	y = v.y - w.y
-	y = y * y
-
-	return sqrt(x + y)
-
-def isUnitDist(v, w):
-	"""
-	Given two vertices, check whether they're at unit distance from each other.
-	"""
-	return isclose(1, dist(v, w), abs_tol=1.e-6)
-
-
-def union(G, H):
-	"""
-	Union of two graphs
-	"""
-	M = UnitDistanceGraph()
-	for v in G.graph.nodes:
-		for w in H.graph.nodes:
-		M.add_node(v)
-		M.add_node(w)
-
-	for v in M.graph.nodes:
-		for w in M.graph.nodes:
-			if isUnitDist(v, w):
-				M.add_edge(v, w)
-
-	return M.graph
-
-def minkowskiSum(G, H):
-	"""
-	Minkowski sum of graphs G and H.
-	"""
-	M = UnitDistanceGraph()
-
-	for v in G.graph.nodes:
-		for w in H.graph.nodes:
-			M.add_node(v)
-			M.add_node(w)
-			M.add_node(v + w)
-
-	for v in M.graph.nodes:
-		for w in M.graph.nodes:
-			if isUnitDist(v, w):
-				M.add_edge(v, w)
-
-	return M.graph
-
-def trimMinkowski(G, H, d):
-	"""
-	Minkowski sum of graphs G and H. Before adding the edges, it trims the graph
-	"""
-	M = UnitDistanceGraph()
-
-	for v in G.graph.nodes:
-		for w in H.graph.nodes:
-			M.add_node(v)
-			M.add_node(w)
-			M.add_node(v + w)
-
-	M.trim(d)
-
-	for v in M.graph.nodes:
-		for w in M.graph.nodes:
-			if isUnitDist(v, w):
-				M.add_edge(v, w)
-
-	return M.graph
