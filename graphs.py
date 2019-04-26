@@ -3,13 +3,14 @@ import networkx as nx
 import copy
 import os
 
-from math import isclose, sqrt, sin, cos, acos
+from math import isclose, sqrt, sin, cos, acos, fabs
 
 class Vertex:
 	"""Vertex of the graph. Contains coordinates and color"""
 	def __init__(self, x, y):
 		self.x = x
 		self.y = y
+		self.r = self.getR()		
 		self.color = -1
 
 	def __str__(self):
@@ -32,7 +33,7 @@ class Vertex:
 	def __eq__(self, other):
 		if not isinstance(other, Vertex):
 			return NotImplemented
-		return isclose(self.x, other.x,rel_tol=0.05, abs_tol=1.e-4) and isclose(self.y, other.y, rel_tol=0.05, abs_tol=1.e-4)
+		return isclose(self.x, other.x, abs_tol=1.e-5) and isclose(self.y, other.y, abs_tol=1.e-5)
 
 	def __hash__(self):
 		round_x = round(self.x)
@@ -52,8 +53,8 @@ class Vertex:
 		x = self.x * cos(alpha) - self.y * sin(alpha)
 		y = self.x * sin(alpha) + self.y * cos(alpha)
 
-		x = round(x, 8)
-		y = round(y, 8)
+		#x = round(x, 8)
+		#y = round(y, 8)
 
 		return Vertex(x,y)
 
@@ -101,7 +102,7 @@ class UnitDistanceGraph:
 			self.graph.add_edge(v, w)
 			self.update()
 		else:
-			print("Not Unit Distance Edge. Distance: {}".format(dist(v, w)))
+			print("Not Unit Distance Edge. Distance: {}".format(self.dist(v, w)))
 
 	def remove_node(self, v):
 		"""
@@ -126,7 +127,7 @@ class UnitDistanceGraph:
 		"""
 		Given two vertices, check whether they're at unit distance from each other.
 		"""
-		return isclose(1, self.dist(v, w), rel_tol=0.05, abs_tol=1.e-4)
+		return isclose(1, self.dist(v, w), abs_tol=1.e-5)
 
 
 	#	**********************************************************************
@@ -140,8 +141,9 @@ class UnitDistanceGraph:
 		"""
 		abs_tol = 1.e-6
 		for node in list(self.graph.nodes):
-			if node.getR() > d + abs_tol:
+			if node.r > d + abs_tol:
 				self.remove_node(node)
+		self.update()
 
 	def union(self, G):
 		"""
@@ -164,42 +166,67 @@ class UnitDistanceGraph:
 		"""
 		Minkowski sum of this graph and G.
 		"""
-		M = UnitDistanceGraph()
 
-		for v in self.graph.nodes:
+		# Add all edges from self
+		M = copy.deepcopy(self)
+
+		# Add all edges from G
+		for e in G.graph.edges:
+			M.add_edge(e[0], e[1])
+
+		# Set of sum nodes
+		new_nodes = { v + w for v in self.graph.nodes for w in G.graph.nodes }
+
+		# Add edges on them
+		for x in list(new_nodes):
+			for v in self.graph.nodes:
+				if self.isUnitDist(v, x):
+					M.add_edge(v, x)
+
 			for w in G.graph.nodes:
-				M.add_node(v)
-				M.add_node(w)
-				M.add_node(v + w)
+				if self.isUnitDist(w, x):
+					M.add_edge(w, x)
 
-		for v in M.graph.nodes:
-			for w in M.graph.nodes:
-				if isUnitDist(v, w):
-					M.add_edge(v, w)
+			for z in new_nodes:
+				if self.isUnitDist(x, z):
+					M.add_edge(x, z)
+
+			new_nodes.remove(x)
 
 		return M.graph
 
 	def trimMinkowski(self, G, d):
+		""" Minkowski sum, trimming vertices at distance greater than d
+			This expects 2 graphs already trimmed to distance d, and the distance
 		"""
-		Minkowski sum of this graph and G. Before adding the edges, it trims the graph
-		"""
-		M = UnitDistanceGraph()
+		# Add all edges from self
+		M = copy.deepcopy(self)
 
-		for v in self.graph.nodes:
+		# Add all edges from G
+		for e in G.graph.edges:
+			M.add_edge(e[0], e[1])
+
+		# Set of sum nodes
+		abs_tol = 1.e-6
+		new_nodes = { v + w for v in self.graph.nodes for w in G.graph.nodes if (v+w).r < d + abs_tol}
+
+		# Add edges on them
+		for x in list(new_nodes):
+			for v in self.graph.nodes:
+				if self.isUnitDist(v, x):
+					M.add_edge(v, x)
+
 			for w in G.graph.nodes:
-				M.add_node(v)
-				M.add_node(w)
-				M.add_node(v + w)
+				if self.isUnitDist(w, x):
+					M.add_edge(w, x)
 
-		M.trim(d)
+			for z in new_nodes:
+				if self.isUnitDist(x, z):
+					M.add_edge(x, z)
 
-		for v in M.graph.nodes:
-			for w in M.graph.nodes:
-				if isUnitDist(v, w):
-					M.add_edge(v, w)
+			new_nodes.remove(x)
 
 		return M.graph
-
 
 	#	**********************************************************************
 	#								READ/WRITE
@@ -269,6 +296,7 @@ class UnitDistanceGraph:
 		self.load_edges(fname)
 		self.update()
 
+
 class H(UnitDistanceGraph):
 	"""
 	Unit distance graph with 7 vertices and 12 edges. It's a regular hexagon with its center.
@@ -315,7 +343,7 @@ class W(UnitDistanceGraph):
 	def __init__(self):
 		UnitDistanceGraph.__init__(self)
 
-		self.graph = trimMinkowski(V(), V(), sqrt(3))
+		self.graph = V().trimMinkowski(V(), sqrt(3))
 		self.update()
 
 class M(UnitDistanceGraph):
@@ -327,5 +355,7 @@ class M(UnitDistanceGraph):
 		myW = UnitDistanceGraph()
 		myW.load_graph('W')
 
-		self.graph = minkowskiSum(H(), myW)
+		myH = H()
+
+		self.graph = myH.minkowskiSum(myW)
 		self.update()
