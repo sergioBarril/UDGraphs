@@ -11,9 +11,11 @@ class Vertex:
 		self.y = y
 
 	def __str__(self):
+		""" (x, y) """
 		return '(' + str(self.x) + ', ' + str(self.y) + ')'
 
 	def __add__(self, v):
+		""" Sum of 2 vertices """
 		return Vertex(self.x + v.x, self.y + v.y)
 
 
@@ -88,8 +90,6 @@ class UnitDistanceGraph:
 			if node.getR() > d + abs_tol:
 				self.remove_node(node)
 
-
-
 	def print_graph(self):
 		print("#################")
 		print("n = {}\t m = {}".format(self.n, self.m))
@@ -97,6 +97,57 @@ class UnitDistanceGraph:
 
 		for node in self.graph.nodes:
 			print(node)
+
+	def save_graph(self, fname):
+		with open(fname + '.v', 'w') as f:
+			f.write('{}\n'.format(self.n))
+
+			for v in self.graph.nodes:
+				f.write("{} {}\n".format(v.x, v.y))
+
+		with open(fname + '.e', 'w') as f:
+			f.write('{}\n'.format(self.m))
+
+			for v, w in self.graph.edges:
+				f.write('{} {} {} {}\n'.format(v.x, v.y, w.x, w.y))
+
+	def load_vertices(self, fname):
+		with open(fname + '.v', 'r') as f:
+			self.n = int(f.readline())
+			
+			for line in f:
+				vx, vy = line.split()
+				self.add_node(Vertex(float(vx), float(vy)))
+
+	def load_edges(self, fname):
+		with open(fname + '.e', 'r') as f:
+			self.m = int(f.readline())
+
+			for line in f:
+				vx, vy, wx, wy = line.split()
+				v = Vertex(float(vx), float(vy))
+				w = Vertex(float(wx), float(wy))
+				self.add_edge(v, w)
+
+	def load_graph(self, fname):
+		self.__init__()
+		self.load_edges(fname)
+		self.update()
+
+class H(UnitDistanceGraph):
+	def __init__(self):
+		UnitDistanceGraph.__init__(self)
+
+		v0 = Vertex(0,0)
+		self.add_node(v0)
+
+		v = Vertex(1, 0)
+		for j in range(6):
+			w1 = v.rotate(1, j)
+			w2 = v.rotate(1, j + 1)
+
+			self.add_edge(w1, w2)
+			self.add_edge(w1, v0)
 
 class V(UnitDistanceGraph):
 	def __init__(self):
@@ -119,26 +170,17 @@ class W(UnitDistanceGraph):
 	def __init__(self):
 		UnitDistanceGraph.__init__(self)
 
-		V1 = V()
-		V2 = V()
-		self.graph = trimMinkowski(V1, V2, sqrt(3))
+		self.graph = trimMinkowski(V(), V(), sqrt(3))
 		self.update()
 
-
-class H(UnitDistanceGraph):
+class M(UnitDistanceGraph):
 	def __init__(self):
 		UnitDistanceGraph.__init__(self)
+		myW = UnitDistanceGraph()
+		myW.load_graph('W')
 
-		v0 = Vertex(0,0)
-		self.add_node(v0)
-
-		v = Vertex(1, 0)
-		for j in range(6):
-			w1 = v.rotate(1, j)
-			w2 = v.rotate(1, j + 1)
-
-			self.add_edge(w1, w2)
-			self.add_edge(w1, v0)
+		self.graph = minkowskiSum(H(), myW)
+		self.update()
 
 
 def dist(v, w):
@@ -173,21 +215,17 @@ def trimMinkowski(G, H, d):
 
 
 def minkowskiSum(G, H):
-	M = copy.deepcopy(G)
+	M = UnitDistanceGraph()
 
 	for v in G.graph.nodes:
 		for w in H.graph.nodes:
-			x = v + w
-
-			M.add_node(x)
+			M.add_node(v)
 			M.add_node(w)
+			M.add_node(v + w)
 
-			for z in M.graph.nodes:
-				if isUnitDist(x,z):
-					M.add_edge(x, z)
-
+	for v in M.graph.nodes:
+		for w in M.graph.nodes:
 			if isUnitDist(v, w):
 				M.add_edge(v, w)
-				M.add_edge(x, w)
 
-	return M
+	return M.graph
