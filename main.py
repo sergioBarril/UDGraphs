@@ -6,16 +6,31 @@ import time
 from graphs import Vertex, UnitDistanceGraph, H, V, W, M
 
 """
-myM = UnitDistanceGraph()
-myM.load_graph('M')
+M = H().minkowskiVertices(W())
+M.update()
 
-maxR = 0
-for v in myM.graph.nodes:
-	maxR = max(v.getR(), maxR)
+tol = 0.05
 
-print("n = {}\tm = {}".format(myM.n, myM.m))
-print("maxR = {}".format(maxR))
+nodes = list(M.graph.nodes)
+
+with open('debug.out', 'w') as f:
+	for i in range(M.n):
+		for j in range(i + 1, M.n):
+			v = nodes[i]
+			w = nodes[j]
+#			if M.dist(v, w) < tol:
+			if v == w:
+				f.write('{}-{}. Distancia = {}\n'.format(v, w, M.dist(v, w)))
+print('n = {}\tm = {}'.format(M.n, M.m))
+#M = W().minkowskiVertices(H())
 """
-
 myW = W()
-myW.save_graph('W')
+print(myW.n)
+nodes = list(myW.graph.nodes)
+with open('debugW.out', 'w') as f:
+	for i in range(myW.n):
+		for j in range(i + 1, myW.n):
+			v = nodes[i]
+			w = nodes[j]
+			if v == w:
+				f.write('{}-{}. Distancia = {}\n'.format(v, w, myW.dist(v, w)))
