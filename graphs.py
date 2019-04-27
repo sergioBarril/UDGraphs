@@ -27,7 +27,18 @@ class Vertex:
 			return vertex + color
 		else:
 			return vertex
-		
+
+	def __hash__(self):
+		"""
+		Hashes with the first two decimal places, rounded
+		"""
+		round_x = round(self.x, 2)
+		round_y = round(self.y, 2)
+
+		hash1 = hash(round_x)
+		hash2 = hash(round_y)
+
+		return hash((hash1, hash2))
 
 	def __add__(self, v):
 		""" Sum of 2 vertices """
@@ -39,22 +50,30 @@ class Vertex:
 			return NotImplemented
 		return round(self.x, 2) == round(other.x, 2) and round(self.y, 2) == round(other.y, 2)
 
-	def __hash__(self):
+	def dist(self, v):
+		"""
+		Returns its Euclidean distance to another vertex
+		"""
+		x = self.x - v.x
+		x = x * x
 
+		y = self.y - v.y
+		y = y * y
 
-		#		round_x = float(decimal.Decimal(self.x).quantize(decimal.Decimal('.1'), rounding=decimal.ROUND_DOWN))
-		#round_y = float(decimal.Decimal(self.y).quantize(decimal.Decimal('.1'), rounding=decimal.ROUND_DOWN))
+		return sqrt(x + y)
 
-		round_x = round(self.x, 2)
-		round_y = round(self.y, 2)
-
-		hash1 = hash(round_x)
-		hash2 = hash(round_y)
-
-		return hash((hash1, hash2))
-
+	def isUnitDist(self, v):
+		"""
+		Given two vertices, check whether they're at unit distance from each other.
+		"""
+		return isclose(1, self.dist(v), rel_tol= 1.e-9, abs_tol = 0)
 
 	def rotate(self, i, k):
+		"""
+		Returns a vertex rotated with respect the origin.
+		i changes the angle, where angle = arccos(2i-1 / 2i)
+		k changes how many times is the rotation applied
+		"""
 		alpha = (2 * i - 1)/(2 * i)
 		alpha = acos(alpha)
 		alpha *= k
@@ -65,12 +84,19 @@ class Vertex:
 		return Vertex(x,y)
 
 	def getR(self):
+		"""
+		Returns the distance to (0,0)
+		"""
 		x2 = self.x * self.x
 		y2 = self.y * self.y
 
 		return sqrt(x2 + y2)
 
 	def true_eq(self, other):
+		"""
+		Checks if this vertex is close enough to another one to be considered the same.
+		I'll probably change all of this, it's probably unnecessary
+		"""
 		caseA = isclose(self.x, other.x, rel_tol= rel_tol, abs_tol= 5*abs_tol) and isclose(self.y, other.y, rel_tol= rel_tol, abs_tol=abs_tol)
 		caseB = isclose(self.x, other.x, rel_tol= rel_tol, abs_tol= abs_tol) and isclose(self.y, other.y, rel_tol= rel_tol, abs_tol=5*abs_tol)
 
@@ -110,11 +136,11 @@ class UnitDistanceGraph:
 		This checks if both vertices are at unit distance. If they are, it adds the edge
 		to the graph. Else, it prints the error, specifying the distance they're at.
 		"""
-		if self.isUnitDist(v, w):
+		if v.isUnitDist(w):
 			self.graph.add_edge(v, w)
 			self.update()
 		else:
-			print("Not Unit Distance Edge. Distance: {}".format(self.dist(v, w)))
+			print("Not Unit Distance Edge. Distance: {}".format(v.dist(w)))
 
 	def remove_node(self, v):
 		"""
@@ -122,24 +148,6 @@ class UnitDistanceGraph:
 		"""
 		self.graph.remove_node(v)
 		self.update()
-
-	def dist(self, v, w):
-		"""
-		Given two vertices, return its Euclidean distance
-		"""
-		x = v.x - w.x
-		x = x * x
-
-		y = v.y - w.y
-		y = y * y
-
-		return sqrt(x + y)
-
-	def isUnitDist(self, v, w):
-		"""
-		Given two vertices, check whether they're at unit distance from each other.
-		"""
-		return isclose(1, self.dist(v, w), rel_tol= 1.e-9, abs_tol = 0)
 
 
 	#	**********************************************************************
@@ -168,7 +176,7 @@ class UnitDistanceGraph:
 
 		for v in M.graph.nodes:
 			for w in M.graph.nodes:
-				if self.isUnitDist(v, w):
+				if v.isUnitDist(w):
 					M.add_edge(v, w)
 
 		return M.graph
@@ -191,15 +199,15 @@ class UnitDistanceGraph:
 		# Add edges on them
 		for x in list(new_nodes):
 			for v in self.graph.nodes:
-				if self.isUnitDist(v, x) and not v.true_eq(x):
+				if v.isUnitDist(x) and not v.true_eq(x):
 					M.add_edge(v, x)
 
 			for w in G.graph.nodes:
-				if self.isUnitDist(w, x) and not w.true_eq(x):
+				if w.isUnitDist(x) and not w.true_eq(x):
 					M.add_edge(w, x)
 
 			for z in new_nodes:
-				if self.isUnitDist(x, z) and not z.true_eq(x):
+				if z.isUnitDist(x) and not z.true_eq(x):
 					M.add_edge(x, z)
 
 			new_nodes.remove(x)
@@ -223,20 +231,35 @@ class UnitDistanceGraph:
 		# Add edges on them
 		for x in list(new_nodes):
 			for v in self.graph.nodes:
-				if self.isUnitDist(v, x) and not v.true_eq(x):
+				if v.isUnitDist(x) and not v.true_eq(x):
 					M.add_edge(v, x)
 
 			for w in G.graph.nodes:
-				if self.isUnitDist(w, x) and not w.true_eq(x):
+				if w.isUnitDist(x) and not w.true_eq(x):
 					M.add_edge(w, x)
 
 			for z in new_nodes:
-				if self.isUnitDist(x, z) and not z.true_eq(x):
+				if z.isUnitDist(x) and not z.true_eq(x):
 					M.add_edge(x, z)
 
 			new_nodes.remove(x)
 
 		return M.graph
+
+
+
+	#	**********************************************************************
+	#								VERTEX SORTING
+	#	**********************************************************************
+
+	#def num_triangles(self, v):
+		"""
+		Return the number of unit distance triangles that contain v
+		"""
+	#	neighbours = self.graph[v]
+
+
+
 
 	#	**********************************************************************
 	#								READ/WRITE
