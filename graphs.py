@@ -6,7 +6,7 @@ import decimal
 
 from math import isclose, sqrt, sin, cos, acos, fabs
 
-abs_tol = 0.045
+abs_tol = 0.02
 rel_tol = 1.e-4
 
 class Vertex:
@@ -37,7 +37,7 @@ class Vertex:
 	def __eq__(self, other):
 		if not isinstance(other, Vertex):
 			return NotImplemented
-		return isclose(self.x, other.x, rel_tol= rel_tol, abs_tol= abs_tol) and isclose(self.y, other.y, rel_tol= rel_tol, abs_tol=abs_tol)
+		return round(self.x, 2) == round(other.x, 2) and round(self.y, 2) == round(other.y, 2)
 
 	def __hash__(self):
 
@@ -45,8 +45,8 @@ class Vertex:
 		#		round_x = float(decimal.Decimal(self.x).quantize(decimal.Decimal('.1'), rounding=decimal.ROUND_DOWN))
 		#round_y = float(decimal.Decimal(self.y).quantize(decimal.Decimal('.1'), rounding=decimal.ROUND_DOWN))
 
-		round_x = round(self.x, 8)
-		round_y = round(self.y, 8)
+		round_x = round(self.x, 2)
+		round_y = round(self.y, 2)
 
 		hash1 = hash(round_x)
 		hash2 = hash(round_y)
@@ -70,6 +70,14 @@ class Vertex:
 
 		return sqrt(x2 + y2)
 
+	def true_eq(self, other):
+		caseA = isclose(self.x, other.x, rel_tol= rel_tol, abs_tol= 5*abs_tol) and isclose(self.y, other.y, rel_tol= rel_tol, abs_tol=abs_tol)
+		caseB = isclose(self.x, other.x, rel_tol= rel_tol, abs_tol= abs_tol) and isclose(self.y, other.y, rel_tol= rel_tol, abs_tol=5*abs_tol)
+
+		same = self.x - other.x == 0 and self.y - other.y == 0
+
+		# return isclose(UnitDistanceGraph().dist(self, other), 0.049, abs_tol=0.01) or same
+		return caseA or caseB or same
 
 class UnitDistanceGraph:
 	"""Graph with edges of distance 1"""
@@ -79,6 +87,7 @@ class UnitDistanceGraph:
 		"""
 		self.n = 0 # Vertices
 		self.m = 0 # Edges
+		self.similar_nodes = set()
 		self.graph = nx.Graph()
 
 	def update(self):
@@ -87,6 +96,17 @@ class UnitDistanceGraph:
 		"""
 		self.n = self.graph.number_of_nodes()
 		self.m = self.graph.number_of_edges()
+
+	def safe_nodes(self):
+		nodes = list(self.graph.nodes)
+		for i in range(len(nodes)):
+			v = nodes[i]
+			for j in range(i + 1, len(nodes)):
+				w = nodes[j]
+				if v.true_eq(w):
+					self.similar_nodes.add(v)
+					self.similar_nodes.add(w)
+			
 
 	#	**********************************************************************
 	#								BASIC OPERATIONS
@@ -133,7 +153,7 @@ class UnitDistanceGraph:
 		"""
 		Given two vertices, check whether they're at unit distance from each other.
 		"""
-		return isclose(1, self.dist(v, w), rel_tol= rel_tol, abs_tol = abs_tol)
+		return isclose(1, self.dist(v, w), rel_tol= 1.e-9, abs_tol = 0)
 
 
 	#	**********************************************************************
@@ -167,6 +187,19 @@ class UnitDistanceGraph:
 
 		return M.graph
 
+	def clean(self, node_set):
+		while True:
+			nodes = list(node_set)
+			for i in range(len(nodes)):
+				for j in range(i + 1, len(nodes)):
+					v = nodes[i]
+					w = nodes[j]
+					if v.true_eq(w):					
+						self.merge_nodes(v, w)
+					return False
+		return True
+
+
 	def minkowskiSum(self, G):
 		"""
 		Minkowski sum of this graph and G.
@@ -181,21 +214,90 @@ class UnitDistanceGraph:
 
 		# Set of sum nodes
 		new_nodes = { v + w for v in self.graph.nodes for w in G.graph.nodes if v + w not in M.graph.nodes}
+		
+		# Add edges on them
+		for x in list(new_nodes):
+			for v in self.graph.nodes:
+				if self.isUnitDist(v, x) and not v.true_eq(x):
+					M.add_edge(v, x)
+
+			for w in G.graph.nodes:
+				if self.isUnitDist(w, x) and not w.true_eq(x):
+					M.add_edge(w, x)
+
+			for z in new_nodes:
+				if self.isUnitDist(x, z) and not z.true_eq(x):
+					M.add_edge(x, z)
+
+			new_nodes.remove(x)
+
+		return M.graph
+
+	def shittyminkowskiSum(self, G):
+		"""
+		Minkowski sum of this graph and G.
+		"""
+
+		# Add all edges from self
+		M = copy.deepcopy(self)
+
+		# Add all edges from G
+		for e in G.graph.edges:
+			M.add_edge(e[0], e[1])
+
+		print('n = {}\tm = {}'.format(M.n, M.m))
+		# Set of sum nodes
+		new_nodes = { v + w for v in self.graph.nodes for w in G.graph.nodes if v + w not in M.graph.nodes}
+
+		shit = 0
+		for v in new_nodes:
+			for w in new_nodes:
+				if v == w and not v.true_eq(w):
+					print('v: {}\tw: {}\tDistancia: {}'.format(v, w, self.dist(v, w)))
+					shit += 1
+
+		print("Shit = {}".format(shit))
+
+		for v in new_nodes:
+			for w in new_nodes:
+				if v != w and v.true_eq(w):
+					# print('v: {}\tw: {}\tDistancia: {}'.format(v, w, self.dist(v, w)))
+					shit += 1
+
+		print("Shit = {}".format(shit))
+
+		safe_nodes = set()
+		for v in G.graph.nodes:
+			for w in self.similar_nodes:
+				safe_nodes.add(v + w)
+
+		nodes = list(new_nodes)
+		with open('angryM.out', 'w') as f:				
+			for i in range(M.n):
+				v = nodes[i]
+				for j in range(i + 1, M.n):
+					w = nodes[j]
+					if v.true_eq(w):# and v not in safe_nodes:
+						f.write('v: {}\tw: {}\tDistancia: {}\n'.format(v, w, self.dist(v, w)))
+
+		print('Length of safe nodes: {}'.format(len(safe_nodes)))
+
 		print("Length of new_nodes trimmed: {}".format(len(new_nodes)))
 		print("Current total number of vertices: {}".format(M.n + len(new_nodes)))
+		print('Current total number of edges: {}'.format(M.m))
 
 		# Add edges on them
 		for x in list(new_nodes):
 			for v in self.graph.nodes:
-				if self.isUnitDist(v, x):
+				if self.isUnitDist(v, x) and not v.true_eq(x):
 					M.add_edge(v, x)
 
 			for w in G.graph.nodes:
-				if self.isUnitDist(w, x):
+				if self.isUnitDist(w, x) and not w.true_eq(x):
 					M.add_edge(w, x)
 
 			for z in new_nodes:
-				if self.isUnitDist(x, z):
+				if self.isUnitDist(x, z) and not z.true_eq(x):
 					M.add_edge(x, z)
 
 			new_nodes.remove(x)
@@ -213,20 +315,27 @@ class UnitDistanceGraph:
 
 		new_nodes = { v + w for v in self.graph.nodes for w in G.graph.nodes}
 		M.graph.add_nodes_from(new_nodes)
-
-		nodes = list(M.graph.nodes)
-		for i in range(M.n):
-			for j in range(i + 1, M.n):
-				v = nodes[i]
-				w = nodes[j]
-				if v == w:
-					print('v: {}\tw: {}\n'.format(v,w))
-					M.remove_node(w)
 		M.update()
-		print("n = {}".format(M.n))
+
+		print("Before cleaning:")
+		print("n = {}\tm = {}".format(M.n, M.m))
+
+		while not M.clean():	
+			""
+		M.update()
+		print("After cleaning:")
+		print("n = {}\tm = {}".format(M.n, M.m))
+
 
 
 		return M
+
+	def merge_nodes(self, v, w):
+		#for x in self.graph[w]:
+			#if x not in self.graph[v]:
+				#self.add_edge(v, x)
+
+		self.remove_node(w)
 
 	def trimMinkowski(self, G, d):
 		""" Minkowski sum, trimming vertices at distance greater than d
@@ -245,15 +354,15 @@ class UnitDistanceGraph:
 		# Add edges on them
 		for x in list(new_nodes):
 			for v in self.graph.nodes:
-				if self.isUnitDist(v, x):
+				if self.isUnitDist(v, x) and not v.true_eq(x):
 					M.add_edge(v, x)
 
 			for w in G.graph.nodes:
-				if self.isUnitDist(w, x):
+				if self.isUnitDist(w, x) and not w.true_eq(x):
 					M.add_edge(w, x)
 
 			for z in new_nodes:
-				if self.isUnitDist(x, z):
+				if self.isUnitDist(x, z) and not z.true_eq(x):
 					M.add_edge(x, z)
 
 			new_nodes.remove(x)
@@ -359,7 +468,7 @@ class V(UnitDistanceGraph):
 
 		v = Vertex(1,0)
 
-		for k in range(5):
+		for k in range(-2, 3, 1):
 			for j in range(6):
 				w1 = v.rotate(3, k/2).rotate(1, j)
 				w2 = v.rotate(3, k/2).rotate(1, j + 1)
@@ -378,14 +487,22 @@ class W(UnitDistanceGraph):
 		self.graph = V().trimMinkowski(V(), sqrt(3))
 		self.update()
 
+
+
 class M(UnitDistanceGraph):
 	"""
 	Unit distance graph with 1345 vertices. It's the Minkowski Sum of W with H.
 	"""
 	def __init__(self):
 		UnitDistanceGraph.__init__(self)
-		myW = W()
-		myH = H()
 
-		self.graph = myH.minkowskiSum(myW)
+		myW = W()
+
+		myW.safe_nodes()
+		print(len(myW.similar_nodes))
+		with open('Wsimilarnodes.out', 'w') as f:
+			for node in myW.similar_nodes:
+				f.write(str(node) + '\n')
+
+		self.graph = myW.minkowskiSum(H())
 		self.update()
