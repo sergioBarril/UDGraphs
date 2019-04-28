@@ -347,101 +347,83 @@ class UnitDistanceGraph:
 		for v in self.graph.nodes:
 			spindles = max(spindles, self.num_spindles(v))
 
+		return spindles
 
-	def num_spindles(self, u):
+
+	def num_spindles(self, A):
 		"""
-		Return the number of Moser spindles that contain u
+		Return the number of Moser spindles that contain A
 		"""
 
-		neighbours = self.graph[u]
+		neighbours = self.graph[A]
 
 		spindles = 0
 
-		for pair in it.combinations(neighbours, 2):
+		for pair in it.combinations(neighbours, 2): # For each triangle
 			v, w = pair
 			if v.isUnitDist(w):
-				rhombuses = self.is_rhombus(u, v, w)
-				for key, value in rhombuses.items():
-					print(key, value)
-				triangle = [u, v, w]
-				print("Triangle: ", end="")
-				print("u = {}\tv={}\tw={}".format(u, v, w))
-				for i in range(3):
-					if triangle[i] in rhombuses:			
-						spindles += self.spindle_in_rhombus(triangle[i], triangle[(i+1)%3], triangle[(i+2)%3], rhombuses[triangle[i]], u)
+				print("Triangle: A = {}\tv = {}\tw = {}".format(A,v,w))
+				rhombuses = self.is_rhombus(A, v, w) # Get its rhombuses
+				for tip1, tip2 in rhombuses.items():
+					if A == tip1: # If the vertex at study is not at the tip of the rhombus
+						spindles += self.spindles_in_rhombus(tip1, tip2, v, w) # (Tip mode)
+					elif v == tip1:
+						spindles += self.spindles_in_rhombus(tip1, tip2, A, w, False) # (A is not in the tip mode)
+					else: # w == tip1
+						spindles += self.spindles_in_rhombus(tip1, tip2, v, A, False)
+
 		return spindles
 
-
-
-	def spindle_in_rhombus(self, u, v, w, z, A):
+	def spindles_in_rhombus(self, tip1, tip2, v, w, tip_mode = True):
 		"""
-		Given the four vertices of a rhombus, checks if they're part
-		of a Moser spindle
+		Returns the number of spindles that contain the rhombus.
 
-		u and z must be the tips of the rhombus.
-
-		A is the vertex we're studying in num_spindles
 		"""
-
-		def is_rhombus_rotated(self, vr, wr, zr, z, uN, zN):
+		def is_valid_rhombus(self, sign, tip1, tip2, v, w):
 			"""
-			Checks whether the rotated rhombus is part of the same
-			Moser spindle.
-			u and z are the tips, u is the center of rotation
+			Rotates the given rhombus, given the sign of rotation
+			around the first tip. Returns true if it's a valid rhombus.
 			"""
-			if wr not in self.graph.nodes:
-				return False
 
-			case = vr in uN and wr in uN # Triangle u, vr, wr
-			# print('Case 1: {}'.format(case))
-			case *= vr in self.graph[wr] # Edge vr - wr
-			# print('Case 2: {}'.format(case))
-			case *= vr in self.graph[zr] and wr in self.graph[zr] # Triangle z, vr, wr
-			# print('Case 3: {}'.format(case))
-			case *= zr in zN # Edge z - zr
-			# print('Case 4: {}'.format(case))
+			# Nodes of the graph
+			G = self.graph.nodes
 
-			return case
+			# Rotation of the rest of points around tip1
+			tip2R = tip2.rotate(3, sign, center = tip1)
+			vR = v.rotate(3, sign, center = tip1)
+			wR = w.rotate(3, sign, center = tip1)
 
-		print('Rombo: u = {}\tv={}\tw={}\tz={}'.format(u,v,w,z))
-		alpha = acos(5/6)
+			if tip2R not in G or vR not in G or wR not in G: # if they're not vertices
+				return False  # they won't make a valid rhombus
+
+			tip1N = self.graph[tip1] # Neighbours of tip1
+			tip2RN = self.graph[tip2R] # Neighbours of tip2R
+
+			# There's no need i think, because it's unit distance already, they should be
+			# neighbours no matter what. i'll leave this here tho.
+			valid = vR in tip1N and wR and wR in self.graph[vR]
+			valid = valid and vR in tip2RN and wR in tip2RN
+			valid = valid and tip2 in tip2RN
+
+			return valid
+
+		print("Rhombus: Tip1 = {}\tTip2 ={}\tv = {}\tw = {}".format(tip1, tip2, v, w))
 		spindles = 0
-
-		uN = self.graph[u] # Neighbours of u
-		zN = self.graph[z] # Neighbours of z
-
-		angles = {1}
-		if u != A:
-			angles.add(-1)
-
-		for k in angles:
-			vr = v.rotate(3, k, center = u)
-			wr = w.rotate(3, k, center = u)
-			zr = z.rotate(3, k, center = u)
-
-			print('v = {}'.format(v))
-			print('vr = {}'.format(vr))
-			print('z = {}'.format(z))
-			print('zr = {}'.format(zr))
 		
-			if is_rhombus_rotated(self, vr, wr, zr, z, uN, zN):
+		if is_valid_rhombus(self, 1, tip1, tip2, v, w):
+			spindles += 1
+		if not tip_mode:
+			if is_valid_rhombus(self, -1, tip1, tip2, v, w):
 				spindles += 1
+		if is_valid_rhombus(self, 1, tip2, tip1, v, w):
+			spindles += 1
+		if is_valid_rhombus(self, -1, tip2, tip1, v, w):
+			spindles += 1
 
-		angles = {1}
-		if z != A:
-			angles.add(-1)
-
-		for k in angles:
-			vr = v.rotate(3, k, center = z)
-			wr = w.rotate(3, k, center = z)
-			ur = z.rotate(3, k, center = z)
-		
-			if is_rhombus_rotated(self, vr, wr, ur, u, zN, uN):
-				spindles += 1
-
+		if not tip_mode:
+			spindles /= 2
+		print('Spindles: {}'.format(spindles))
 		return spindles
-
-
 
 	def is_rhombus(self, u, v, w):
 		"""

@@ -52,5 +52,4 @@ def saveSpindle():
 	G = MoserSpindle()
 	G.update()
 	G.save_graph('moser_spindle')
-
 saveT()

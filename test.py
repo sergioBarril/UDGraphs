@@ -43,6 +43,7 @@ class TestSpindles():
 	def test_moser(self):
 		G = MoserSpindle()
 		assert G.num_spindles(Vertex(1,0)) == 1
+		assert G.spindles() == 1
 
 	def test_2_mosers(self):
 		G = MoserSpindle()
@@ -51,6 +52,7 @@ class TestSpindles():
 		F = G.union(H)
 		assert F.num_spindles(Vertex(0,0)) == 2
 		assert F.num_spindles(Vertex(1,0)) == 1
+		assert F.spindles() == 2
 
 	def test_V(self):
 		G = V()
@@ -63,6 +65,8 @@ class TestSpindles():
 	def test_T(self):
 		G = T()
 		assert G.num_spindles(Vertex(0,0)) == 1
+		assert G.num_spindles(Vertex(1.8333333, 0.552770798)) == 0
+		assert G.num_spindles(Vertex(1.5, 0.866025)) == 1
 		assert G.spindles() == 1
 
 
