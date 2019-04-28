@@ -5,7 +5,8 @@ import os
 import decimal
 import itertools as it
 
-from math import isclose, sqrt, sin, cos, acos, asin, fabs
+import math
+from math import isclose, sqrt, sin, cos, acos, asin, fabs, pi
 
 abs_tol = 0.02
 rel_tol = 1.e-4
@@ -45,6 +46,16 @@ class Vertex:
 		""" Sum of 2 vertices """
 		return Vertex(self.x + v.x, self.y + v.y)
 
+	def __sub__(self, v):
+		""" Subtraction of 2 vertices """
+		return Vertex(self.x - v.x, self.y - v.y)
+
+	def __truediv__(self, num):
+		""" Division of the Vertex by a number """
+		if isinstance(num, Vertex):
+			return NotImplemented
+		return Vertex(self.x/num, self.y/num)
+
 
 	def __eq__(self, other):
 		if not isinstance(other, Vertex):
@@ -68,6 +79,13 @@ class Vertex:
 		Given two vertices, check whether they're at unit distance from each other.
 		"""
 		return isclose(1, self.dist(v), rel_tol= 1.e-9, abs_tol = 0)
+
+	def isUnitTriangle(self, v, w):
+		"""
+		Given two vertices, check whether this vertex forms a
+		unit distance triangle with those two
+		"""
+		return isUnitDist(v, w)
 
 	def rotate(self, i, k = None, center = None):
 		"""
@@ -324,6 +342,134 @@ class UnitDistanceGraph:
 
 		return triangles
 
+	def spindles(self):
+		spindles = 0
+		for v in self.graph.nodes:
+			spindles = max(spindles, self.num_spindles(v))
+
+
+	def num_spindles(self, u):
+		"""
+		Return the number of Moser spindles that contain u
+		"""
+
+		neighbours = self.graph[u]
+
+		spindles = 0
+
+		for pair in it.combinations(neighbours, 2):
+			v, w = pair
+			if v.isUnitDist(w):
+				rhombuses = self.is_rhombus(u, v, w)
+				for key, value in rhombuses.items():
+					print(key, value)
+				triangle = [u, v, w]
+				print("Triangle: ", end="")
+				print("u = {}\tv={}\tw={}".format(u, v, w))
+				for i in range(3):
+					if triangle[i] in rhombuses:			
+						spindles += self.spindle_in_rhombus(triangle[i], triangle[(i+1)%3], triangle[(i+2)%3], rhombuses[triangle[i]], u)
+		return spindles
+
+
+
+	def spindle_in_rhombus(self, u, v, w, z, A):
+		"""
+		Given the four vertices of a rhombus, checks if they're part
+		of a Moser spindle
+
+		u and z must be the tips of the rhombus.
+
+		A is the vertex we're studying in num_spindles
+		"""
+
+		def is_rhombus_rotated(self, vr, wr, zr, z, uN, zN):
+			"""
+			Checks whether the rotated rhombus is part of the same
+			Moser spindle.
+			u and z are the tips, u is the center of rotation
+			"""
+			if wr not in self.graph.nodes:
+				return False
+
+			case = vr in uN and wr in uN # Triangle u, vr, wr
+			# print('Case 1: {}'.format(case))
+			case *= vr in self.graph[wr] # Edge vr - wr
+			# print('Case 2: {}'.format(case))
+			case *= vr in self.graph[zr] and wr in self.graph[zr] # Triangle z, vr, wr
+			# print('Case 3: {}'.format(case))
+			case *= zr in zN # Edge z - zr
+			# print('Case 4: {}'.format(case))
+
+			return case
+
+		print('Rombo: u = {}\tv={}\tw={}\tz={}'.format(u,v,w,z))
+		alpha = acos(5/6)
+		spindles = 0
+
+		uN = self.graph[u] # Neighbours of u
+		zN = self.graph[z] # Neighbours of z
+
+		angles = {1}
+		if u != A:
+			angles.add(-1)
+
+		for k in angles:
+			vr = v.rotate(3, k, center = u)
+			wr = w.rotate(3, k, center = u)
+			zr = z.rotate(3, k, center = u)
+
+			print('v = {}'.format(v))
+			print('vr = {}'.format(vr))
+			print('z = {}'.format(z))
+			print('zr = {}'.format(zr))
+		
+			if is_rhombus_rotated(self, vr, wr, zr, z, uN, zN):
+				spindles += 1
+
+		angles = {1}
+		if z != A:
+			angles.add(-1)
+
+		for k in angles:
+			vr = v.rotate(3, k, center = z)
+			wr = w.rotate(3, k, center = z)
+			ur = z.rotate(3, k, center = z)
+		
+			if is_rhombus_rotated(self, vr, wr, ur, u, zN, uN):
+				spindles += 1
+
+		return spindles
+
+
+
+	def is_rhombus(self, u, v, w):
+		"""
+		Given a unit distance triangle, return all their unit rhombuses
+		Returns a dict with the fourth vertex of all rhombuses with
+		u, v and w.
+		"""
+
+		rhombuses = dict()
+
+		z = v.rotate(math.pi/3, center = u)
+		if z == w:
+			v, w  = w, v
+			z = v.rotate(math.pi/3, center = u)
+
+		if z in self.graph[u] and z in self.graph[v]:
+			rhombuses[w] = z
+
+		z = w.rotate(-math.pi/3, center = u)
+		if z in self.graph[u] and z in self.graph[w]:
+			rhombuses[v] = z
+
+		z = w.rotate(math.pi/3, center = v)
+		if z in self.graph[v] and z in self.graph[w]:
+			rhombuses[u] = z
+
+		return rhombuses
+
 
 	#	**********************************************************************
 	#								READ/WRITE
@@ -453,6 +599,30 @@ class L(UnitDistanceGraph):
 		K2 = K().rotate(alpha, center = Vertex(-2,0))
 
 		self.graph = K1.union(K2).graph
+		self.update()
+
+class T(UnitDistanceGraph):
+	"""
+	Unit distance graph T, with 9 vertices.
+	"""
+	def __init__(self):
+		moser = MoserSpindle()
+		A = Vertex(1/2, sqrt(3)/2)
+		B = Vertex(1,0).rotate(3, 1)
+
+		Z = Vertex(3/2, sqrt(3)/2)
+		ZR = Z.rotate(3,1)
+
+		P = (A - B) + ZR
+		Q = (B - A) + Z
+
+		moser.add_edge(Q, B)
+		moser.add_edge(Q, Vertex(1,0))
+
+		moser.add_edge(P, A)
+		moser.add_edge(P, A.rotate(3,1))
+
+		self.graph = moser.graph
 		self.update()
 
 class V(UnitDistanceGraph):

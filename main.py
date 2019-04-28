@@ -3,7 +3,7 @@ import math
 import time
 
 from graphs import Vertex, UnitDistanceGraph, H, V, W, M
-from graphs import MoserSpindle, J, K, L
+from graphs import MoserSpindle, J, K, L, T
 
 
 def saveH():
@@ -27,6 +27,11 @@ def saveL():
 	G.update()
 	G.save_graph('L')
 
+def saveT():
+	G = T()
+	G.update()
+	G.save_graph('T')
+
 def saveV():
 	G = V()
 	print('n = {}\tm = {}'.format(G.n, G.m))
@@ -48,5 +53,4 @@ def saveSpindle():
 	G.update()
 	G.save_graph('moser_spindle')
 
-
-saveL()
+saveT()

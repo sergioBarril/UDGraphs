@@ -5,7 +5,7 @@ import math
 import time
 
 from graphs import Vertex, UnitDistanceGraph, H, V, W, M, MoserSpindle
-from graphs import J, K, L
+from graphs import J, K, L, T
 
 
 class TestTriangles():
@@ -14,6 +14,56 @@ class TestTriangles():
 		assert G.num_triangles(Vertex(0,0)) == 6
 		assert G.num_triangles(Vertex(-1, 0)) == 2
 
+class TestVertex():
+	def test_add(self):
+		v = Vertex(1,2)
+		w = Vertex(3,4)
+
+		assert v + w == Vertex(4,6)
+
+	def test_substract(self):
+		v = Vertex(1,2)
+		w = Vertex(3,4)
+
+		assert v - w == Vertex(-2, -2)
+
+	def test_divide(self):
+		v = Vertex(4,2)
+
+		assert v/2 == Vertex(2, 1)
+
+	def test_rotate(self):
+		v = Vertex(1,0)
+
+		assert v.rotate(math.pi/2) == Vertex(0,1)
+
+
+
+class TestSpindles():
+	def test_moser(self):
+		G = MoserSpindle()
+		assert G.num_spindles(Vertex(1,0)) == 1
+
+	def test_2_mosers(self):
+		G = MoserSpindle()
+		H = MoserSpindle().rotate(math.pi)
+
+		F = G.union(H)
+		assert F.num_spindles(Vertex(0,0)) == 2
+		assert F.num_spindles(Vertex(1,0)) == 1
+
+	def test_V(self):
+		G = V()
+		spindles = 0
+		for v in G.graph.nodes:
+			spindles += G.num_spindles(v)
+
+		assert spindles == 0
+
+	def test_T(self):
+		G = T()
+		assert G.num_spindles(Vertex(0,0)) == 1
+		assert G.spindles() == 1
 
 
 class TestGraphs():
@@ -54,6 +104,11 @@ class TestGraphs():
 		B = Vertex(2,0)
 		B2 = B.rotate(alpha, center = A)
 		assert B2.isUnitDist(B)
+
+	def test_T(self):
+		G = T()
+		assert G.n  == 9
+		assert G.m == 15
 
 	def test_V(self):
 		G = V()
