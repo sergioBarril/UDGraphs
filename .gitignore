@@ -1,2 +1,4 @@
 __pycache__/
+auxFiles/
+tikz/
 *.pyc

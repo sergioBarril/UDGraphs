@@ -17,7 +17,8 @@ class Vertex:
 		self.x = x
 		self.y = y
 		self.r = self.getR()
-		self.color = -1
+		self.color = 2
+		self.id = None
 
 	def __str__(self):
 		""" (x, y)[color] """

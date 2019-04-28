@@ -5,6 +5,7 @@ import time
 from graphs import Vertex, UnitDistanceGraph, H, V, W, M
 from graphs import MoserSpindle, J, K, L, T, U
 
+from tikz import TikzDocument
 
 def saveH():
 	G = H()
@@ -58,4 +59,5 @@ def saveSpindle():
 	G.update()
 	G.save_graph('moser_spindle')
 
-saveU()
+G = H()
+tkz = TikzDocument('test', G)
