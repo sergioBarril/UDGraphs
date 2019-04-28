@@ -3,8 +3,9 @@ import networkx as nx
 import copy
 import os
 import decimal
+import itertools as it
 
-from math import isclose, sqrt, sin, cos, acos, fabs
+from math import isclose, sqrt, sin, cos, acos, asin, fabs
 
 abs_tol = 0.02
 rel_tol = 1.e-4
@@ -20,7 +21,7 @@ class Vertex:
 	def __str__(self):
 		""" (x, y)[color] """
 
-		vertex = '({}, {})'.format(round(self.x, 5), round(self.y, 5), self.color)
+		vertex = '({}, {})'.format(round(self.x, 3), round(self.y, 3), self.color)
 		color = '[{}]'.format(self.color)
 
 		if self.color != -1:
@@ -68,18 +69,30 @@ class Vertex:
 		"""
 		return isclose(1, self.dist(v), rel_tol= 1.e-9, abs_tol = 0)
 
-	def rotate(self, i, k):
+	def rotate(self, i, k = None, center = None):
 		"""
-		Returns a vertex rotated with respect the origin.
-		i changes the angle, where angle = arccos(2i-1 / 2i)
-		k changes how many times is the rotation applied
+		Returns a vertex rotated with respect to the given center, or
+		(0,0) as a default center.
+		
+		If k is given:
+			i changes the angle, where angle = arccos(2i-1 / 2i)
+			k changes how many times is the rotation applied
+		Else:
+			i is the angle, in radians
 		"""
-		alpha = (2 * i - 1)/(2 * i)
-		alpha = acos(alpha)
-		alpha *= k
+		if center is None:
+			center = Vertex(0,0)
 
-		x = self.x * cos(alpha) - self.y * sin(alpha)
-		y = self.x * sin(alpha) + self.y * cos(alpha)
+		if k is None:
+			alpha = i
+		else:
+			alpha = (2 * i - 1)/(2 * i)
+			alpha = acos(alpha)
+			alpha *= k
+
+		c = center
+		x = (self.x - c.x) * cos(alpha) - (self.y - c.y) * sin(alpha) + c.x
+		y = (self.x - c.x) * sin(alpha) + (self.y - c.y) * cos(alpha) + c.y
 
 		return Vertex(x,y)
 
@@ -140,7 +153,16 @@ class UnitDistanceGraph:
 			self.graph.add_edge(v, w)
 			self.update()
 		else:
-			print("Not Unit Distance Edge. Distance: {}".format(v.dist(w)))
+			print("Not Unit Distance Edge:")
+			print("v = {}\tw = {}\tDistance: {}".format(v, w, v.dist(w)))
+
+	def copy_edge(self, v, w):
+		"""
+		This adds an edge to the graph, even if it isn't unit distance.
+		Use it with caution.
+		"""
+		self.graph.add_edge(v, w)
+		self.update()
 
 	def remove_node(self, v):
 		"""
@@ -154,6 +176,39 @@ class UnitDistanceGraph:
 	#								ADVANCED OPERATIONS
 	#	**********************************************************************
 
+	def rotate(self, i, k=None, center=None):
+		"""
+		Rotates the graph around the given center, or (0,0) as default
+
+		If k is given:
+			i changes the angle, where angle = arccos(2i-1 / 2i)
+			k changes how many times is the rotation applied
+		Else:
+			i is the angle, in radians
+		"""
+
+		if center is None:
+			center = Vertex(0,0)
+
+		if k is None:
+			alpha = i
+		else:
+			alpha = (2 * i - 1)/(2 * i)
+			alpha = acos(alpha)
+			alpha *= k
+
+
+		R = UnitDistanceGraph()
+
+		for v in self.graph.nodes:
+			vr = v.rotate(alpha, center = center)
+			for w in self.graph[v]:
+				wr = w.rotate(alpha, center = center)
+				R.copy_edge(vr, wr)
+
+		return R
+
+
 	def trim(self, d):
 		"""
 		Removes all vertices (and edges adjacent to those) that are at greater distance
@@ -166,7 +221,10 @@ class UnitDistanceGraph:
 
 	def union(self, G):
 		"""
-		Returns the union of this graph with G
+		Returns the union of this graph with G.
+		* The vertices are the union of both vertex sets
+		* The edges are the edges of both, plus those vertices at
+			unit distance.
 		"""
 		M = UnitDistanceGraph()
 		for v in self.graph.nodes:
@@ -179,7 +237,7 @@ class UnitDistanceGraph:
 				if v.isUnitDist(w):
 					M.add_edge(v, w)
 
-		return M.graph
+		return M
 
 	def minkowskiSum(self, G):
 		"""
@@ -212,7 +270,7 @@ class UnitDistanceGraph:
 
 			new_nodes.remove(x)
 
-		return M.graph
+		return M
 
 	def trimMinkowski(self, G, d):
 		""" Minkowski sum, trimming vertices at distance greater than d
@@ -244,7 +302,7 @@ class UnitDistanceGraph:
 
 			new_nodes.remove(x)
 
-		return M.graph
+		return M
 
 
 
@@ -252,13 +310,19 @@ class UnitDistanceGraph:
 	#								VERTEX SORTING
 	#	**********************************************************************
 
-	#def num_triangles(self, v):
+	def num_triangles(self, v):
 		"""
 		Return the number of unit distance triangles that contain v
 		"""
-	#	neighbours = self.graph[v]
+		neighbours = self.graph[v]
 
+		triangles = 0
 
+		for pair in it.combinations(neighbours, 2):
+			if pair[0].isUnitDist(pair[1]):
+				triangles += 1
+
+		return triangles
 
 
 	#	**********************************************************************
@@ -334,19 +398,61 @@ class H(UnitDistanceGraph):
 	"""
 	Unit distance graph with 7 vertices and 12 edges. It's a regular hexagon with its center.
 	"""
-	def __init__(self):
+	def __init__(self, v0 = None):
 		UnitDistanceGraph.__init__(self)
 
-		v0 = Vertex(0,0)
+		if v0 is None:
+			v0 = Vertex(0, 0)
+
 		self.add_node(v0)
 
-		v = Vertex(1, 0)
+		v = v0 + Vertex(1, 0)
+
 		for j in range(6):
-			w1 = v.rotate(1, j)
-			w2 = v.rotate(1, j + 1)
+			w1 = v.rotate(1, k = j, center = v0)
+			w2 = v.rotate(1, k = j + 1, center = v0)
 
 			self.add_edge(w1, w2)
 			self.add_edge(w1, v0)
+		self.update()
+
+class J(UnitDistanceGraph):
+	"""
+	Unit distance graph with 31 vertices, 72 edges and made with 13 copies of H
+	"""
+	def __init__(self):
+		A = H().minkowskiSum(H())
+		for v in list(A.graph.nodes):
+			if isclose(v.r, sqrt(3)):
+				A = A.union(H(v))
+
+		self.graph = A.graph
+		self.update()
+
+
+class K(UnitDistanceGraph):
+	"""
+	Unit distance graph with 61 vertices, 150 edges, and made with 2 copies of J
+	"""
+	def __init__(self):
+		J1 = J()
+		alpha = 2*asin(0.25)
+		J2 = J1.rotate(alpha)
+
+		self.graph = J1.union(J2).graph
+		self.update()
+
+
+class L(UnitDistanceGraph):
+	"""
+	Unit distance graph with 121 vertices, 301 edges, and made with 2 copies of K (52 copies of H)
+	"""
+	def __init__(self):
+		K1 = K()
+		alpha = 2*asin(0.125)
+		K2 = K().rotate(alpha, center = Vertex(-2,0))
+
+		self.graph = K1.union(K2).graph
 		self.update()
 
 class V(UnitDistanceGraph):
@@ -378,10 +484,8 @@ class W(UnitDistanceGraph):
 	def __init__(self):
 		UnitDistanceGraph.__init__(self)
 
-		self.graph = V().trimMinkowski(V(), sqrt(3))
+		self.graph = V().trimMinkowski(V(), sqrt(3)).graph
 		self.update()
-
-
 
 class M(UnitDistanceGraph):
 	"""
@@ -390,5 +494,24 @@ class M(UnitDistanceGraph):
 	def __init__(self):
 		UnitDistanceGraph.__init__(self)
 
-		self.graph = W().minkowskiSum(H())
+		self.graph = W().minkowskiSum(H()).graph
+		self.update()
+
+class MoserSpindle(UnitDistanceGraph):
+	"""
+	Unit distance graph with 7 vertices and 8 edges
+	"""
+	def __init__(self):
+		UnitDistanceGraph.__init__(self)
+
+		A = UnitDistanceGraph()
+		B = UnitDistanceGraph()
+
+		A.add_edge(Vertex(0,0), Vertex(1,0))
+		B.add_edge(Vertex(0,0), Vertex(1/2, sqrt(3)/2))
+
+		C = A.minkowskiSum(B)
+		CR = C.rotate(3,1)
+
+		self.graph = C.union(CR).graph
 		self.update()

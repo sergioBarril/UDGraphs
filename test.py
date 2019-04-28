@@ -1,0 +1,76 @@
+import pytest
+
+import networkx as nx
+import math
+import time
+
+from graphs import Vertex, UnitDistanceGraph, H, V, W, M, MoserSpindle
+from graphs import J, K, L
+
+
+class TestTriangles():
+	def test_H(self):
+		G = H()
+		assert G.num_triangles(Vertex(0,0)) == 6
+		assert G.num_triangles(Vertex(-1, 0)) == 2
+
+
+
+class TestGraphs():
+	def test_H(self):
+		G = H()
+		assert G.n == 7
+		assert G.m == 12
+
+	def test_H2(self):
+		G1 = H()
+		G2 = H(Vertex(1,0))
+
+		nodes1 = list(G1.graph.nodes)
+		nodes2 = list(G2.graph.nodes)
+
+		for i in range(G1.n):
+			assert nodes1[i].x + 1 == nodes2[i].x
+
+	def test_J(self):
+		G = J()
+		assert G.n == 31
+		assert G.m == 72
+
+	def test_K(self):
+		G = K()
+		assert G.n == 61
+		assert G.m == 150
+
+	def test_L(self):
+		G = L()
+		assert G.n == 121
+		assert G.m == 301
+
+		alpha = 2*math.asin(0.125)
+		
+		# Check that both linking diagonals are neighbours
+		A = Vertex(-2,0)
+		B = Vertex(2,0)
+		B2 = B.rotate(alpha, center = A)
+		assert B2.isUnitDist(B)
+
+	def test_V(self):
+		G = V()
+		assert G.n == 31
+		assert G.m == 60
+
+	def test_W(self):
+		G = W()
+		assert G.n == 301
+		assert G.m == 1230
+
+	def test_M(self):
+		G = M()
+		assert G.n == 1345
+		assert G.m == 8268
+
+	def test_moser(self):
+		G = MoserSpindle()
+		assert G.n == 7
+		assert G.m == 11
