@@ -215,7 +215,6 @@ class UnitDistanceGraph:
 			alpha = acos(alpha)
 			alpha *= k
 
-
 		R = UnitDistanceGraph()
 
 		for v in self.graph.nodes:
@@ -585,7 +584,7 @@ class L(UnitDistanceGraph):
 
 class T(UnitDistanceGraph):
 	"""
-	Unit distance graph T, with 9 vertices.
+	Unit distance graph T, with 9 vertices. It's made by adding two vertices to the Moser's spindle.
 	"""
 	def __init__(self):
 		moser = MoserSpindle()
@@ -605,6 +604,23 @@ class T(UnitDistanceGraph):
 		moser.add_edge(P, A.rotate(3,1))
 
 		self.graph = moser.graph
+		self.update()
+
+class U(UnitDistanceGraph):
+	"""
+	Unit distance graph U, with 15 vertices and 33 edges. Made of 3 copies of T, at 120deg rotations.
+	"""
+	def __init__(self):
+		UnitDistanceGraph.__init__(self)
+
+		T1 = T()
+		T2 = T1.rotate((2*math.pi)/3, center = Vertex(0,0))
+		T3 = T2.rotate((2*math.pi)/3, center = Vertex(0,0))
+
+		myU = T1.union(T2)
+		myU = myU.union(T3)
+
+		self.graph = myU.graph
 		self.update()
 
 class V(UnitDistanceGraph):

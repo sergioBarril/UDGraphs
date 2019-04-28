@@ -5,7 +5,7 @@ import math
 import time
 
 from graphs import Vertex, UnitDistanceGraph, H, V, W, M, MoserSpindle
-from graphs import J, K, L, T
+from graphs import J, K, L, T, U
 
 
 class TestTriangles():
@@ -69,6 +69,16 @@ class TestSpindles():
 		assert G.num_spindles(Vertex(1.5, 0.866025)) == 1
 		assert G.spindles() == 1
 
+class TestRotate():
+	def test_A(self):
+		A = UnitDistanceGraph()
+		A.add_edge(Vertex(1,0), Vertex(0,0))
+		AR = A.rotate(2*math.pi/3)
+		ARR = AR.rotate(2*math.pi/3)
+		ARRR = ARR.rotate(2*math.pi/3)
+
+		assert Vertex(0,0) in ARRR.graph.nodes
+		assert Vertex(1,0) in ARRR.graph.nodes
 
 class TestGraphs():
 	def test_H(self):
@@ -114,6 +124,11 @@ class TestGraphs():
 		assert G.n  == 9
 		assert G.m == 15
 
+	def test_U(self):
+		G = U()
+		assert G.n == 15
+		assert G.m == 33
+
 	def test_V(self):
 		G = V()
 		assert G.n == 31
@@ -133,3 +148,4 @@ class TestGraphs():
 		G = MoserSpindle()
 		assert G.n == 7
 		assert G.m == 11
+
