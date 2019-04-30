@@ -61,9 +61,13 @@ def saveSpindle():
 	G.update()
 	G.save_graph('moser_spindle')
 
-G = H()
-G.color_graph()
-fname = str(random.randint(1,100000))
-G.draw_graph(fname)
+G = J()
+G.color_graph(4)
+G.uncolor_graph()
+
+G.update()
+fname = str(random.randint(1,10000000))
+
+G.draw_graph(fname, True)
 
 # tkz = TikzDocument('Hcoloring', G)

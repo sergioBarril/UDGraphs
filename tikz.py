@@ -93,12 +93,11 @@ class TikzDocument():
 		if not hard:
 			command = "pdflatex -halt-on-error "
 		else:
-			command = "luatex "
+			command = "lualatex "
 
-		command += '-output-directory tikz -aux-directory {} '.format(auxFiles) + self.fname
-		print('THIS IS THE COMMAND')
+		command += '--shell-escape -output-directory tikz -aux-directory {} '.format(auxFiles) + self.fname
+
 		print(command)
-
 		os.system(command)
 		self.p = subprocess.Popen([self.pdfname],shell=True)
 
@@ -110,7 +109,5 @@ class TikzDocument():
 		self.add_colors()
 
 		self.end()
-		if hard:
-			self.run()
-		else:
-			self.run_hard(self)
+		
+		self.run(hard)

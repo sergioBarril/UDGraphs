@@ -90,6 +90,9 @@ class Vertex:
 
 	def isColored(self):
 		return self.color > 0
+	
+	def color(self, color):
+		self.color = color
 
 	def rotate(self, i, k = None, center = None):
 		"""
@@ -538,13 +541,26 @@ class UnitDistanceGraph:
 						w = self.sorted_nodes[i]
 						w.banned_colors.append(w.color)
 						self.uncolor_node(w)
+						i -= 1
 					else:
 						print("No se puede colorear con {} colores".format(colors))
 						return False
 				else:
 					i += 1
-
+			else:
+				i += 1
 		return True
+
+	def uncolor_graph(self):
+		for v in self.sorted_nodes:
+			v.color = -1
+		self.update()
+
+	def search_vertex(self, v):
+		for w in self.sorted_nodes:
+			if w == v:
+				return w
+		return False
 
 	#	**********************************************************************
 	#								READ/WRITE
@@ -620,7 +636,7 @@ class UnitDistanceGraph:
 		and opens its PDF
 		"""
 		tkz = TikzDocument(fname, self)
-		tkz.run(hard)
+		tkz.draw(hard)
 
 class H(UnitDistanceGraph):
 	"""
@@ -765,6 +781,30 @@ class M(UnitDistanceGraph):
 
 		self.graph = W().minkowskiSum(H()).graph
 		self.update()
+
+	def check_property(self):
+		def colorH(self, mode):
+			if mode == 1: # Distance of sqrt(3)
+				self.search_vertex(Vertex(0,0)).color(1)
+				self.search_vertex(Vertex(1,0)).color(2)
+				self.search_vertex(Vertex(0.5, sqrt(3))).color(3)
+				self.search_vertex(Vertex(-0.5, sqrt(3))).color(4)
+				self.search_vertex(Vertex(-1,0)).color(2)
+				self.search_vertex(Vertex(-0.5, -sqrt(3))).color(4)
+				self.search_vertex(Vertex(0.5, -sqrt(3))).color(3)
+			elif mode == 2:
+				self.search_vertex(Vertex(0,0)).color(1)
+				self.search_vertex(Vertex(1,0)).color(2)
+				self.search_vertex(Vertex(0.5, sqrt(3))).color(3)
+				self.search_vertex(Vertex(-0.5, sqrt(3))).color(4)
+				self.search_vertex(Vertex(-1,0)).color(2)
+				self.search_vertex(Vertex(-0.5, -sqrt(3))).color(3)
+				self.search_vertex(Vertex(0.5, -sqrt(3))).color(4)
+			else:
+				return NotImplemented
+		self.update()
+		
+
 
 class MoserSpindle(UnitDistanceGraph):
 	"""
