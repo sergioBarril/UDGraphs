@@ -7,6 +7,8 @@ from graphs import MoserSpindle, J, K, L, T, U
 
 from tikz import TikzDocument
 
+import random
+
 def saveH():
 	G = H()
 	print('n = {}\tm = {}'.format(G.n, G.m))
@@ -60,4 +62,8 @@ def saveSpindle():
 	G.save_graph('moser_spindle')
 
 G = H()
-tkz = TikzDocument('test', G)
+G.color_graph()
+fname = str(random.randint(1,100000))
+G.draw_graph(fname)
+
+# tkz = TikzDocument('Hcoloring', G)

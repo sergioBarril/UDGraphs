@@ -5,8 +5,11 @@ import os
 import decimal
 import itertools as it
 
+import random
 import math
 from math import isclose, sqrt, sin, cos, acos, asin, fabs, pi
+
+from tikz import TikzDocument
 
 abs_tol = 0.02
 rel_tol = 1.e-4
@@ -17,8 +20,12 @@ class Vertex:
 		self.x = x
 		self.y = y
 		self.r = self.getR()
-		self.color = 2
+
 		self.id = None
+
+		self.color = -1
+		self.uncolorable_nodes = []
+		self.banned_colors = []
 
 	def __str__(self):
 		""" (x, y)[color] """
@@ -81,12 +88,8 @@ class Vertex:
 		"""
 		return isclose(1, self.dist(v), rel_tol= 1.e-9, abs_tol = 0)
 
-	def isUnitTriangle(self, v, w):
-		"""
-		Given two vertices, check whether this vertex forms a
-		unit distance triangle with those two
-		"""
-		return isUnitDist(v, w)
+	def isColored(self):
+		return self.color > 0
 
 	def rotate(self, i, k = None, center = None):
 		"""
@@ -144,6 +147,7 @@ class UnitDistanceGraph:
 		self.n = 0 # Vertices
 		self.m = 0 # Edges	
 		self.graph = nx.Graph()
+		self.sorted_nodes = self.sort_nodes()
 
 	def update(self):
 		"""
@@ -151,6 +155,7 @@ class UnitDistanceGraph:
 		"""
 		self.n = self.graph.number_of_nodes()
 		self.m = self.graph.number_of_edges()
+		self.sorted_nodes = self.sort_nodes()
 
 	#	**********************************************************************
 	#								BASIC OPERATIONS
@@ -361,8 +366,7 @@ class UnitDistanceGraph:
 
 		for pair in it.combinations(neighbours, 2): # For each triangle
 			v, w = pair
-			if v.isUnitDist(w):
-				print("Triangle: A = {}\tv = {}\tw = {}".format(A,v,w))
+			if v.isUnitDist(w):				
 				rhombuses = self.is_rhombus(A, v, w) # Get its rhombuses
 				for tip1, tip2 in rhombuses.items():
 					if A == tip1: # If the vertex at study is not at the tip of the rhombus
@@ -407,7 +411,6 @@ class UnitDistanceGraph:
 
 			return valid
 
-		print("Rhombus: Tip1 = {}\tTip2 ={}\tv = {}\tw = {}".format(tip1, tip2, v, w))
 		spindles = 0
 		
 		if is_valid_rhombus(self, 1, tip1, tip2, v, w):
@@ -421,8 +424,7 @@ class UnitDistanceGraph:
 			spindles += 1
 
 		if not tip_mode:
-			spindles /= 2
-		print('Spindles: {}'.format(spindles))
+			spindles /= 2		
 		return spindles
 
 	def is_rhombus(self, u, v, w):
@@ -452,6 +454,97 @@ class UnitDistanceGraph:
 
 		return rhombuses
 
+
+	def node_score(self, v):
+		"""
+		Returns the score to sort nodes
+		"""
+		v_spindles = self.num_spindles(v)
+		v_degree = self.graph.degree[v]
+		v_triangles = self.num_triangles(v)
+
+		return v_spindles * 100 + v_degree * 10 + v_triangles
+
+	def sort_nodes(self):
+		"""
+		Returns a list with all the nodes, sorted
+		"""
+		return sorted(list(self.graph.nodes), reverse=True, key=self.node_score)
+
+
+	#	**********************************************************************
+	#								COLORING
+	#	**********************************************************************
+
+	def available_colors(self, v, colors):
+		"""
+		Returns a list with the available colors for vertex v
+		"""
+		available = [color for color in range(1, colors + 1) if color not in v.banned_colors]
+
+		for z in self.graph[v]:
+			for w in self.sorted_nodes:
+				if z == w and w.color in available:
+					available.remove(w.color)
+		return available
+
+	def color_node(self, v, colors):
+		remaining_colors = self.available_colors(v, colors)		
+		if not remaining_colors:
+			return False
+
+		backtrack = False
+
+		for color in remaining_colors:
+			v.color = color	
+			neighbours = [w for w in self.sorted_nodes if w in self.graph[v]]
+			for w in neighbours:									
+				if not w.isColored():
+					if not self.available_colors(w, colors): # If w doesn't have legal colors
+						backtrack = True
+						break
+					elif len(self.available_colors(w, colors)) == 1:
+						colored = self.color_node(w, colors)
+						v.uncolorable_nodes.append(w) # In case we need to backtrack, we'll uncolor w
+						if not colored:
+							backtrack = True
+							break			
+			if not backtrack:
+				return True
+			self.uncolor_node(v)
+			backtrack = False
+		return False
+
+
+	def uncolor_node(self, v):
+		v.color = -1
+		uncolorable = [w for w in self.sorted_nodes if w in v.uncolorable_nodes]
+		for w in uncolorable:
+			self.uncolor_node(w)
+			v.uncolorable_nodes.remove(w)
+
+
+	def color_graph(self, colors=4):
+		i = 0
+		colored_nodes = []		
+
+		while i < len(self.sorted_nodes):
+			v = self.sorted_nodes[i]
+			if not v.isColored():
+				colored = self.color_node(v, colors)
+				if not colored:
+					if i > 1 and colored_nodes:
+						i = colored_nodes.pop()
+						w = self.sorted_nodes[i]
+						w.banned_colors.append(w.color)
+						self.uncolor_node(w)
+					else:
+						print("No se puede colorear con {} colores".format(colors))
+						return False
+				else:
+					i += 1
+
+		return True
 
 	#	**********************************************************************
 	#								READ/WRITE
@@ -521,6 +614,13 @@ class UnitDistanceGraph:
 		self.load_edges(fname)
 		self.update()
 
+	def draw_graph(self, fname, hard=False):
+		"""
+		Given a filename, this function draws this graph using LaTeX
+		and opens its PDF
+		"""
+		tkz = TikzDocument(fname, self)
+		tkz.run(hard)
 
 class H(UnitDistanceGraph):
 	"""

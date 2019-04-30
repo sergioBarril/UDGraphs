@@ -1,7 +1,7 @@
 import os
 
-from graphs import Vertex, UnitDistanceGraph, H, V, W, M
-from graphs import MoserSpindle, J, K, L, T, U
+# from graphs import Vertex, UnitDistanceGraph, H, V, W, M
+# from graphs import MoserSpindle, J, K, L, T, U
 
 import subprocess
 
@@ -13,15 +13,6 @@ class TikzDocument():
 		self.pdfname = os.path.join('tikz', fname + '.pdf')
 		self.G = UDGraph.graph
 		self.p = None # Process for pdf
-
-		self.open_new()
-
-		self.add_nodes()
-		self.add_edges()
-		self.add_colors()
-
-		self.end()
-		self.run()
 
 	def open_new(self):
 		with open(self.fname, 'w') as f:
@@ -95,9 +86,31 @@ class TikzDocument():
 				# color = col_dict[v.color] + strength				
 				# f.write("\t\\AddVertexColor{{{}}}{{{}}}\n".format(color, v.id ))
 
-	def run(self):
+	def run(self, hard=False):
 		texFiles = os.path.join('tikz', 'texFiles')
 		auxFiles = os.path.join(texFiles, 'auxFiles')
 
-		os.system("pdflatex -halt-on-error --shell-escape -output-directory tikz -aux-directory {} ".format(auxFiles) + self.fname)
+		if not hard:
+			command = "pdflatex -halt-on-error "
+		else:
+			command = "luatex "
+
+		command += '-output-directory tikz -aux-directory {} '.format(auxFiles) + self.fname
+		print('THIS IS THE COMMAND')
+		print(command)
+
+		os.system(command)
 		self.p = subprocess.Popen([self.pdfname],shell=True)
+
+	def draw(self, hard=False):
+		self.open_new()
+
+		self.add_nodes()
+		self.add_edges()
+		self.add_colors()
+
+		self.end()
+		if hard:
+			self.run()
+		else:
+			self.run_hard(self)
