@@ -16,15 +16,8 @@ class ColoringGraph():
 		self.translate_graph(UDGraph)
 		self.copy_graph(UDGraph)
 
-		assert self.get_color(0) == 1
-		assert self.get_color(1) == 2
-		assert self.get_color(2) == 3
-		assert self.get_color(3) == 4
-		assert self.get_color(4) == 2
-
 		colored = self.color_graph()
 		if colored:
-			print('Somehow, it has been colored')
 			self.color_original()
 
 

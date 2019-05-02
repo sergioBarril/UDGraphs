@@ -27,7 +27,7 @@ class TikzDocument():
 \begin{document}
 
 \renewcommand*{\VertexSmallMinSize}{2pt}
-%\renewcommand*{\VertexInnerSep}{0pt}
+\renewcommand*{\VertexInnerSep}{0pt}
 \renewcommand*{\EdgeLineWidth}{0.2pt}
 
 \begin{tikzpicture}

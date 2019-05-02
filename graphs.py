@@ -839,13 +839,16 @@ class M(UnitDistanceGraph):
 			for v in centralH:
 				print(v)
 			
-			colors = []
-			colors += [1,2,3,4,2]
-
-			if mode == 1:
-				colors += [4, 3]
+			colors = [1, 2, 3]
+			
+			if mode == 1: # 3 colored H
+				colors += [2, 3, 2, 3]
 			else:
-				colors += [3, 4]
+				colors.append(4)
+				if mode == 0: # No triple vertex				
+					colors += [2, 4, 3]
+				elif mode == 2: # 4 coloring with monochromatic triple
+					colors += [3, 4, 3]
 
 			for v in centralH:
 				v.color = colors.pop(0)
@@ -858,10 +861,10 @@ class M(UnitDistanceGraph):
 		self.update_and_sort()
 		colorH(self, 1)
 		ColoringGraph(self)
-		# print('Checking property with coloring 2:')
-		# self.uncolor_graph()
-		# colorH(self, 2)
-		# ColoringGraph(self)
+		print('Checking property with coloring 2:')
+		self.uncolor_graph()
+		colorH(self, 2)
+		ColoringGraph(self)
 
 
 class MoserSpindle(UnitDistanceGraph):

@@ -80,19 +80,10 @@ class App():
 
 	def check_M_property(self):
 		self.G.check_property()
-
+		
 	def new_coloring(self):
 		self.G.update_and_sort()
 		coloring = ColoringGraph(self.G)
-
-	def assert_property(self):		
-		for v in self.G.graph.nodes:
-			assert v.isColored()
-			for w in self.G.graph[v]:
-				z = self.G.search_vertex(w)
-				assert z.isColored()
-				assert z.color != v.color
-
 
 	def show_menu(self):
 		print("\t**********************************")
@@ -110,7 +101,7 @@ class App():
 				options_fun.extend((self.graph_coloring, self.draw_graph, self.amplified_draw, self.print_dimacs, self.new_coloring))
 				if self.Gname == "M":
 					options.append("Check M property")				
-					options_fun.append(self.check_M_property)					
+					options_fun.append(self.check_M_property)								
 				options.append("Exit")
 
 			self.print_options(options)
