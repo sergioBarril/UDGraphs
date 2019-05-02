@@ -4,11 +4,13 @@ import copy
 import os
 import decimal
 import itertools as it
+import collections
 
 import random
 import math
 from math import isclose, sqrt, sin, cos, acos, asin, fabs, pi
 
+from color import ColoringGraph
 from tikz import TikzDocument
 
 abs_tol = 0.02
@@ -40,10 +42,10 @@ class Vertex:
 
 	def __hash__(self):
 		"""
-		Hashes with the first two decimal places, rounded
+		Hashes with the first three decimal places, rounded
 		"""
-		round_x = round(self.x, 2)
-		round_y = round(self.y, 2)
+		round_x = round(self.x, 3)
+		round_y = round(self.y, 3)
 
 		hash1 = hash(round_x)
 		hash2 = hash(round_y)
@@ -68,7 +70,7 @@ class Vertex:
 	def __eq__(self, other):
 		if not isinstance(other, Vertex):
 			return NotImplemented
-		return round(self.x, 2) == round(other.x, 2) and round(self.y, 2) == round(other.y, 2)
+		return round(self.x, 3) == round(other.x, 3) and round(self.y, 3) == round(other.y, 3)
 
 	def dist(self, v):
 		"""
@@ -150,7 +152,7 @@ class UnitDistanceGraph:
 		self.n = 0 # Vertices
 		self.m = 0 # Edges	
 		self.graph = nx.Graph()
-		self.sorted_nodes = self.sort_nodes()
+		self.sorted_nodes = []
 
 	def update(self):
 		"""
@@ -158,6 +160,12 @@ class UnitDistanceGraph:
 		"""
 		self.n = self.graph.number_of_nodes()
 		self.m = self.graph.number_of_edges()
+
+	def update_and_sort(self):
+		"""
+		Refreshes the number of vertices and edges, and sorts the vertices
+		"""
+		self.update()
 		self.sorted_nodes = self.sort_nodes()
 
 	#	**********************************************************************
@@ -427,7 +435,7 @@ class UnitDistanceGraph:
 			spindles += 1
 
 		if not tip_mode:
-			spindles /= 2		
+			spindles /= 2		# revisar
 		return spindles
 
 	def is_rhombus(self, u, v, w):
@@ -518,7 +526,6 @@ class UnitDistanceGraph:
 			backtrack = False
 		return False
 
-
 	def uncolor_node(self, v):
 		v.color = -1
 		uncolorable = [w for w in self.sorted_nodes if w in v.uncolorable_nodes]
@@ -526,28 +533,31 @@ class UnitDistanceGraph:
 			self.uncolor_node(w)
 			v.uncolorable_nodes.remove(w)
 
-
 	def color_graph(self, colors=4):
+		if self.sorted_nodes is None or len(self.sorted_nodes) < self.n:
+			self.update_and_sort()
+			print('Nodes sorted.')
+
 		i = 0
 		colored_nodes = []		
-
 		while i < len(self.sorted_nodes):
 			v = self.sorted_nodes[i]
 			if not v.isColored():
 				colored = self.color_node(v, colors)
-				if not colored:
-					if i > 1 and colored_nodes:
+				if not colored: # If it couldn't be colored:				
+					if colored_nodes: # If there's some v to backtrack to
 						i = colored_nodes.pop()
-						w = self.sorted_nodes[i]
+						w = self.sorted_nodes[i]					
 						w.banned_colors.append(w.color)
+						v.banned_colors = []
 						self.uncolor_node(w)
-						i -= 1
 					else:
-						print("No se puede colorear con {} colores".format(colors))
+						print("This graph can't be colored with {} colors".format(colors))
 						return False
-				else:
+				else:					
+					colored_nodes.append(i)
 					i += 1
-			else:
+			else:				
 				i += 1
 		return True
 
@@ -560,6 +570,7 @@ class UnitDistanceGraph:
 		for w in self.sorted_nodes:
 			if w == v:
 				return w
+
 		return False
 
 	#	**********************************************************************
@@ -597,6 +608,28 @@ class UnitDistanceGraph:
 
 			for v, w in self.graph.edges:
 				f.write('{} {} {} {}\n'.format(v.x, v.y, w.x, w.y))
+
+	def save_dimacs(self, fname):
+		with open(os.path.join('graph_edges', fname + '.col'), 'w') as f:
+			f.write('c FILE: {}\n'.format(fname + '.col'))
+			f.write('c\n')
+			f.write('p edge {} {}\n'.format(self.n, self.m))
+
+			id_nodes_dict = dict()
+			self.update_and_sort()
+
+			i = 0
+			for v in self.sorted_nodes:
+				id_nodes_dict[v] = i
+				i += 1
+
+			for v, w in self.graph.edges:
+				f.write("e {} {}\n".format(id_nodes_dict[v], id_nodes_dict[w]))
+
+		with open(os.path.join('graph_edges', fname + '.dict'), 'w') as f:
+			for v, v_id in id_nodes_dict.items():
+				f.write("{} {} {}\n".format(v_id, v.x, v.y))
+
 
 	def load_vertices(self, fname):
 		"""
@@ -665,6 +698,8 @@ class J(UnitDistanceGraph):
 	Unit distance graph with 31 vertices, 72 edges and made with 13 copies of H
 	"""
 	def __init__(self):
+		UnitDistanceGraph.__init__(self)
+
 		A = H().minkowskiSum(H())
 		for v in list(A.graph.nodes):
 			if isclose(v.r, sqrt(3)):
@@ -679,6 +714,8 @@ class K(UnitDistanceGraph):
 	Unit distance graph with 61 vertices, 150 edges, and made with 2 copies of J
 	"""
 	def __init__(self):
+		UnitDistanceGraph.__init__(self)
+
 		J1 = J()
 		alpha = 2*asin(0.25)
 		J2 = J1.rotate(alpha)
@@ -692,6 +729,8 @@ class L(UnitDistanceGraph):
 	Unit distance graph with 121 vertices, 301 edges, and made with 2 copies of K (52 copies of H)
 	"""
 	def __init__(self):
+		UnitDistanceGraph.__init__(self)
+
 		K1 = K()
 		alpha = 2*asin(0.125)
 		K2 = K().rotate(alpha, center = Vertex(-2,0))
@@ -704,6 +743,7 @@ class T(UnitDistanceGraph):
 	Unit distance graph T, with 9 vertices. It's made by adding two vertices to the Moser's spindle.
 	"""
 	def __init__(self):
+		UnitDistanceGraph.__init__(self)
 		moser = MoserSpindle()
 		A = Vertex(1/2, sqrt(3)/2)
 		B = Vertex(1,0).rotate(3, 1)
@@ -784,26 +824,44 @@ class M(UnitDistanceGraph):
 
 	def check_property(self):
 		def colorH(self, mode):
-			if mode == 1: # Distance of sqrt(3)
-				self.search_vertex(Vertex(0,0)).color(1)
-				self.search_vertex(Vertex(1,0)).color(2)
-				self.search_vertex(Vertex(0.5, sqrt(3))).color(3)
-				self.search_vertex(Vertex(-0.5, sqrt(3))).color(4)
-				self.search_vertex(Vertex(-1,0)).color(2)
-				self.search_vertex(Vertex(-0.5, -sqrt(3))).color(4)
-				self.search_vertex(Vertex(0.5, -sqrt(3))).color(3)
-			elif mode == 2:
-				self.search_vertex(Vertex(0,0)).color(1)
-				self.search_vertex(Vertex(1,0)).color(2)
-				self.search_vertex(Vertex(0.5, sqrt(3))).color(3)
-				self.search_vertex(Vertex(-0.5, sqrt(3))).color(4)
-				self.search_vertex(Vertex(-1,0)).color(2)
-				self.search_vertex(Vertex(-0.5, -sqrt(3))).color(3)
-				self.search_vertex(Vertex(0.5, -sqrt(3))).color(4)
+			self.update_and_sort()
+			centralH = []
+
+			centralH.append(self.search_vertex(Vertex(0,0)))
+			centralH.append(self.search_vertex(Vertex(1,0)))
+			centralH.append(self.search_vertex(Vertex(0.5, sqrt(3)/2)))
+			centralH.append(self.search_vertex(Vertex(-0.5, sqrt(3)/2)))
+			centralH.append(self.search_vertex(Vertex(-1,0)))
+			centralH.append(self.search_vertex(Vertex(-0.5, -sqrt(3)/2)))
+			centralH.append(self.search_vertex(Vertex(0.5, -sqrt(3)/2)))
+
+			print('Central H:')
+			for v in centralH:
+				print(v)
+			
+			colors = []
+			colors += [1,2,3,4,2]
+
+			if mode == 1:
+				colors += [4, 3]
 			else:
-				return NotImplemented
-		self.update()
-		
+				colors += [3, 4]
+
+			for v in centralH:
+				v.color = colors.pop(0)
+				self.sorted_nodes.remove(v)
+
+			new_nodes = centralH + self.sorted_nodes
+			self.sorted_nodes = new_nodes
+
+
+		self.update_and_sort()
+		colorH(self, 1)
+		ColoringGraph(self)
+		# print('Checking property with coloring 2:')
+		# self.uncolor_graph()
+		# colorH(self, 2)
+		# ColoringGraph(self)
 
 
 class MoserSpindle(UnitDistanceGraph):

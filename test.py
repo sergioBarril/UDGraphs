@@ -8,6 +8,51 @@ from graphs import Vertex, UnitDistanceGraph, H, V, W, M, MoserSpindle
 from graphs import J, K, L, T, U
 
 
+class TestColoring():
+	def check_coloring(self, G):
+		for v in G.graph.nodes:
+			assert v.isColored()
+			for w in G.graph[v]:
+				z = G.search_vertex(w)
+				assert z.isColored()
+				assert z.color != v.color
+	def test_H(self):
+		G = H()
+		G.update_and_sort()
+		G.color_graph()
+		self.check_coloring(G)
+
+	def test_J(self):
+		G = J()
+		G.update_and_sort()
+		G.color_graph()
+		self.check_coloring(G)
+
+	def test_K(self):
+		G = K()
+		G.update_and_sort()
+		G.color_graph()
+		self.check_coloring(G)
+	
+	def test_L(self):
+		G = L()
+		G.update_and_sort()
+		G.color_graph()
+		self.check_coloring(G)
+
+	def test_W_5(self):
+		G = W()
+		G.update_and_sort()
+		G.color_graph(5)
+		self.check_coloring(G)
+
+
+	def test_W_4(self):
+		G = W()
+		G.update_and_sort()
+		G.color_graph(4)
+		self.check_coloring(G)
+
 class TestTriangles():
 	def test_H(self):
 		G = H()
@@ -42,7 +87,8 @@ class TestVertex():
 class TestSpindles():
 	def test_moser(self):
 		G = MoserSpindle()
-		assert G.num_spindles(Vertex(1,0)) == 1
+		for v in G.graph.nodes:
+			assert G.num_spindles(v) == 1
 		assert G.spindles() == 1
 
 	def test_2_mosers(self):
@@ -50,8 +96,11 @@ class TestSpindles():
 		H = MoserSpindle().rotate(math.pi)
 
 		F = G.union(H)
+
 		assert F.num_spindles(Vertex(0,0)) == 2
-		assert F.num_spindles(Vertex(1,0)) == 1
+		for v in F.graph.nodes:
+			if v != Vertex(0,0):
+				assert F.num_spindles(v) == 1
 		assert F.spindles() == 2
 
 	def test_V(self):
@@ -124,10 +173,10 @@ class TestGraphs():
 		assert G.n  == 9
 		assert G.m == 15
 
-	def test_U(self):
-		G = U()
-		assert G.n == 15
-		assert G.m == 33
+	# def test_U(self):
+	# 	G = U()
+	# 	assert G.n == 15
+	# 	assert G.m == 33
 
 	def test_V(self):
 		G = V()
@@ -143,6 +192,14 @@ class TestGraphs():
 		G = M()
 		assert G.n == 1345
 		assert G.m == 8268
+
+		assert Vertex(0,0) in G.graph.nodes
+		assert Vertex(1,0) in G.graph.nodes
+		assert Vertex(-1, 0) in G.graph.nodes
+		assert Vertex(-0.5, math.sqrt(3)/2) in G.graph.nodes
+		assert Vertex(-0.5, -math.sqrt(3)/2) in G.graph.nodes
+		assert Vertex(0.5, math.sqrt(3)/2) in G.graph.nodes
+		assert Vertex(0.5, -math.sqrt(3)/2) in G.graph.nodes
 
 	def test_moser(self):
 		G = MoserSpindle()
