@@ -240,8 +240,36 @@ class UnitDistanceGraph:
 				wr = w.rotate(alpha, center = center)
 				R.copy_edge(vr, wr)
 
+		R.update()
 		return R
 
+	def translate(self, diff):
+		"""
+		Translation of the graph
+		"""	
+		T = UnitDistanceGraph()
+		for v in self.graph.nodes:
+			T.add_node(v + diff)
+
+		for v in self.graph.nodes:
+			for w in self.graph[v]:
+				T.add_edge(v + diff, w + diff)
+
+		T.update()
+		return T
+
+	def reflection(self, c):
+		"""
+		Reflection over a vertical axis
+		"""
+		NG = UnitDistanceGraph()
+
+		for v in self.graph.nodes:
+			x = v - Vertex(c, 0) 
+			NG.add_node(Vertex(c - x.x, v.y))
+
+
+		return NG.union(UnitDistanceGraph())
 
 	def trim(self, d):
 		"""
@@ -261,10 +289,12 @@ class UnitDistanceGraph:
 			unit distance.
 		"""
 		M = UnitDistanceGraph()
+		
 		for v in self.graph.nodes:
-			for w in G.graph.nodes:
-				M.add_node(v)
-				M.add_node(w)
+			M.add_node(v)
+		
+		for w in G.graph.nodes:		
+			M.add_node(w)
 
 		for v in M.graph.nodes:
 			for w in M.graph.nodes:
@@ -884,4 +914,112 @@ class MoserSpindle(UnitDistanceGraph):
 		CR = C.rotate(3,1)
 
 		self.graph = C.union(CR).graph
+		self.update()
+
+class RegularPentagon(UnitDistanceGraph):
+	"""
+	Unit Distance regular pentagon
+	"""
+	def __init__(self):
+		UnitDistanceGraph.__init__(self)
+
+		# Build the pentagon
+
+		P = UnitDistanceGraph()
+		v0 = Vertex(0,0)
+		v1 = Vertex(1,0)
+
+		P.add_edge(v0, v1)
+
+		pentagon_angle = -0.6*math.pi
+		
+		for i in range(4):
+			v2 = v0.rotate(pentagon_angle, center = v1)
+			P.add_edge(v1, v2)
+			v0 = v1
+			v1 = v2
+
+
+		self.graph = P.graph
+		self.update()
+
+
+class FStar(UnitDistanceGraph):
+	"""
+	Unit distance graph, that is a five point star
+	"""
+
+	def __init__(self):
+		UnitDistanceGraph.__init__(self)
+
+		FS = UnitDistanceGraph()
+		v0 = Vertex(1,0)
+		v1 = Vertex(0,0)
+		
+		FS.add_edge(v0, v1)
+
+		star_angle = -math.pi/5
+
+		for i in range(4):
+			v2 = v0.rotate(star_angle, center = v1)
+			FS.add_edge(v1, v2)
+			v0 = v1
+			v1 = v2
+
+		self.graph = FS.graph
+		self.update()
+
+
+class PetersenGraph(UnitDistanceGraph):
+	"""
+	Unit distance representation of the petersen graph
+	"""	
+	def find_angle(self):
+		x = 1.49606
+		
+		pentagon_angle = 0.6*math.pi
+
+		v0 = Vertex(0,0)
+		v1 = Vertex(1,0)
+		v2 = v1.rotate(pentagon_angle, center = v0)
+
+		z1 = Vertex(10,10)
+		z2 = Vertex(0,0)
+
+		while not z1.isUnitDist(z2):
+			x -= 0.000000001
+			z1 = v0.rotate(-x, center = v1)
+			z2 = v0.rotate(pentagon_angle - x, center = v2)
+			if z1.dist(z2) < 1:
+				input('Angle x: {} dist: {}'.format(x, z1.dist(z2)))
+			if x < 1.4960521500057606:
+				return False
+		return x
+
+	def __init__(self):
+		UnitDistanceGraph.__init__(self)
+		P = RegularPentagon()
+		S = UnitDistanceGraph()
+		pentagon_angle = 0.6 * math.pi
+
+		x = self.find_angle()
+
+		v0 = Vertex(0,0)
+		v1 = Vertex(1,0)	
+		
+		z_list = []
+
+		for i in range(5):
+			z_list.append(v0.rotate(-x, center = v1))
+			v2 = v0.rotate(-pentagon_angle, center = v1)
+			v0, v1 = v1, v2
+
+
+		for z in z_list:
+			S.add_node(z)
+
+		PG = P.union(S)
+		PG = PG.reflection(0.5)
+
+		self.graph = PG.graph
 		self.update()

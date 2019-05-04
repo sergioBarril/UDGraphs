@@ -2,27 +2,28 @@ import networkx as nx
 import collections
 
 class ColoringGraph():
-	def __init__(self, UDGraph, colors = 4):
+	def __init__(self, UDGraph, colors = 4, new = True, verbose=False):
 		self.graph = nx.Graph()
 		self.vtoid = dict()
 		self.idtov = dict()
 
 		self.colors = colors
+		self.verbose = verbose
 
 		self.banned_colors = collections.defaultdict(list)
 		self.uncolorable_nodes = collections.defaultdict(list)
 
-		print('n = {}'.format(UDGraph.n))
+		if not UDGraph.sorted_nodes:
+			UDGraph.update_and_sort()
+
+		if new:
+			UDGraph.uncolor_graph()
+		
 		self.translate_graph(UDGraph)
 		self.copy_graph(UDGraph)
 
-		colored = self.color_graph()
-		if colored:
-			self.color_original()
 
-
-
-	def translate_graph(self, UDGraph):
+	def translate_graph(self, UDGraph):		
 		i = 0
 		for v in UDGraph.sorted_nodes:
 			self.vtoid[v] = i
@@ -33,7 +34,6 @@ class ColoringGraph():
 	def copy_graph(self, UDGraph):
 		for (v,w) in UDGraph.graph.edges:		
 			self.graph.add_edge(self.vtoid[v], self.vtoid[w])
-
 
 	def get_color(self, i):
 		return self.graph.nodes[i]['color']
@@ -102,24 +102,30 @@ class ColoringGraph():
 				colored = self.color_node(i)
 				if not colored: # If it couldn't be colored:	
 					if colored_nodes: # If there's some v to backtrack to						
-						j = colored_nodes.pop()
-						print('{} couldn\'t be colored. Backtracking to {}'.format(i, j))
+						j = colored_nodes.pop()						
 						self.banned_colors[j].append(self.get_color(j))
 						self.banned_colors[i] = []
 						self.uncolor_node(j)
 						i = j
 					else:
-						print("This graph can't be colored with {} colors".format(self.colors))
+						if self.verbose:
+							print("This graph can't be colored with {} colors".format(self.colors))
 						return False
-				else:
-					print('{} has been colored with color {}'.format(i, self.get_color(i)))					
+				else:					
 					colored_nodes.append(i)
 					i += 1
-			else:
-				print('{} was already colored with color {}'.format(i, self.get_color(i)))				
+			else:				
 				i += 1
 		return True
 
 	def color_original(self):
 		for i in self.graph.nodes:
 			self.idtov[i].color = self.get_color(i)
+
+	def color(self):
+		colored = self.color_graph()
+		if colored:
+			self.color_original()
+			return True
+		else:
+			return False

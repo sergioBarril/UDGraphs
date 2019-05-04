@@ -1,4 +1,5 @@
 __pycache__/
 auxFiles/
 tikz/
+texLabels/
 *.pyc
