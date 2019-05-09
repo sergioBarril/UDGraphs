@@ -3,3 +3,7 @@ auxFiles/
 tikz/
 texLabels/
 *.pyc
+*.e
+*.v
+*.col
+*.dict

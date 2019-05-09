@@ -9,15 +9,13 @@ class ColoringGraph():
 
 		self.colors = colors
 		self.verbose = verbose
+		self.new = new
 
 		self.banned_colors = collections.defaultdict(list)
 		self.uncolorable_nodes = collections.defaultdict(list)
 
-		if not UDGraph.sorted_nodes:
-			UDGraph.update_and_sort()
-
 		if new:
-			UDGraph.uncolor_graph()
+			UDGraph.update_and_sort()		
 		
 		self.translate_graph(UDGraph)
 		self.copy_graph(UDGraph)
@@ -28,7 +26,10 @@ class ColoringGraph():
 		for v in UDGraph.sorted_nodes:
 			self.vtoid[v] = i
 			self.idtov[i] = v
-			self.graph.add_node(i, color=v.color)
+			if self.new:
+				self.graph.add_node(i, color=-1)
+			else:
+				self.graph.add_node(i, color=v.color)
 			i +=1
 
 	def copy_graph(self, UDGraph):

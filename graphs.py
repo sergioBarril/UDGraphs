@@ -276,10 +276,14 @@ class UnitDistanceGraph:
 		Removes all vertices (and edges adjacent to those) that are at greater distance
 		than d from (0,0)
 		"""
+
+
 		for node in list(self.graph.nodes):
 			if node.r > d + abs_tol:
 				self.remove_node(node)
 		self.update()
+
+		return self
 
 	def union(self, G):
 		"""
@@ -852,7 +856,7 @@ class M(UnitDistanceGraph):
 		self.graph = W().minkowskiSum(H()).graph
 		self.update()
 
-	def check_property(self):
+	def check_property(self, mode = 1):
 		def colorH(self, mode):
 			self.update_and_sort()
 			centralH = []
@@ -889,12 +893,11 @@ class M(UnitDistanceGraph):
 
 
 		self.update_and_sort()
-		colorH(self, 1)
-		ColoringGraph(self)
-		print('Checking property with coloring 2:')
-		self.uncolor_graph()
-		colorH(self, 2)
-		ColoringGraph(self)
+
+		colorH(self, mode)
+		Mproperty = ColoringGraph(self, new = False)
+		return Mproperty.color()
+
 
 
 class MoserSpindle(UnitDistanceGraph):
