@@ -10,6 +10,7 @@ from GUI.calculator_ui import *
 from graphs import *
 from tikz import TikzDocument
 from color import ColoringGraph
+from sat import UDGSat
 
 import os
 import matplotlib.pyplot as plt
@@ -487,11 +488,17 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
 	def color_graph(self):
 		maxColors = self.maxColors.value()
-		cg = ColoringGraph(self.G, colors = maxColors, new = True)
+
+		if self.sat_color.isChecked():
+			cg = UDGSat(self.G, colors = maxColors)
+			colored = cg.solve(color = True)
+		else:		
+			cg = ColoringGraph(self.G, colors = maxColors, new = True)
+			colored = cg.color()
 
 		msg = QMessageBox()
 		msg.setWindowIcon(QIcon(os.path.join('GUI', 'appicon.ico')))
-		if cg.color():
+		if colored:
 			msg.setIcon(QMessageBox.Information)			
 			msg.setText("Graph successfully colored with at most {} colors.".format(maxColors))
 			msg.setWindowTitle("Coloring Successful")

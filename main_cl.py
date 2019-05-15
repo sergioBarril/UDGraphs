@@ -14,6 +14,8 @@ from color import ColoringGraph
 
 from tikz import TikzDocument
 
+from sat import UDGSat
+
 import random
 
 class App():
@@ -97,47 +99,25 @@ class App():
 		coloring = ColoringGraph(self.G)
 
 
-	# def pic(self):
-
-	# 	self.G = UnitDistanceGraph()
-	# 	self.G.add_node(Vertex(-2,0))
-	# 	self.G.add_node(Vertex(2,0))
-	# 	print(Vertex(2,0).rotate(16, 1, center = Vertex(-2,0)))
-	# 	return
-	# 	self.G = UnitDistanceGraph()
-	# 	self.G.add_node(Vertex(0,0))
-	# 	self.G.add_node(Vertex(1,0))
-
-	# 	self.G.add_edge(Vertex(0,0), Vertex(1,0))
-	# 	ColoringGraph(self.G).color()
-
-	# 	self.draw_graph(factor = 2)
-
-
-	# 	self.H = UnitDistanceGraph()
-	# 	self.H.add_edge(Vertex(0,0), Vertex(0.5, math.sqrt(3)/2))
-	# 	ColoringGraph(self.H).color()
-	# 	tkz = TikzDocument('B', self.H, factor = 2)
-	# 	tkz.draw()
-
-
-	# 	self.G = self.G.minkowskiSum(self.H)
-	# 	self.G = self.G.union(UnitDistanceGraph())
-
-	# 	ColoringGraph(self.G).color()
-
-	# 	self.draw_graph(factor = 2)
-
-	# 	self.G = MoserSpindle()
-	# 	ColoringGraph(self.G).color()
-
-	# 	self.draw_graph(factor = 2)
-
-
 	def pic(self):
-		myS = G()
-		print('n = {}\tm = {}'.format(myS.n, myS.m))
-		myS.save_graph('G')	
+		myH = W()
+
+		sat = UDGSat(myH, 4)
+
+		solution = sat.solve(True)
+		if not solution:
+			print("Unsatisfiable!")
+		else:
+			print("Satisfiable.")
+
+		tkz = TikzDocument(str(random.randint(1,100000)), myH, 2.5)
+		tkz.draw()
+
+
+
+		# myS = G()
+		# print('n = {}\tm = {}'.format(myS.n, myS.m))
+		# myS.save_graph('G')	
 		# myS.update_and_sort()
 		# print('A colorear!')
 		# coloring = ColoringGraph(myS)
