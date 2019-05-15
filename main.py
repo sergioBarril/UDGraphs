@@ -459,6 +459,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 				self.G.load_graph(os.path.basename(file)[:-2])
 				self.Gname = os.path.basename(file)[:-2]
 				self.Gformula = self.Gname
+				self.toggle_invisible()
 				self.set_names()
 
 

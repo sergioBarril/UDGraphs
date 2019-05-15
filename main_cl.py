@@ -2,10 +2,13 @@ import networkx as nx
 import math
 import time
 
-from graphs import Vertex, UnitDistanceGraph, H, V, W, M
+from vertex import Vertex
+
+from graphs import UnitDistanceGraph, H, V, W, M
 from graphs import MoserSpindle, J, K, L, T, U
 from graphs import RegularPentagon, PetersenGraph
 from graphs import FStar
+from graphs import G
 
 from color import ColoringGraph
 
@@ -94,41 +97,56 @@ class App():
 		coloring = ColoringGraph(self.G)
 
 
+	# def pic(self):
+
+	# 	self.G = UnitDistanceGraph()
+	# 	self.G.add_node(Vertex(-2,0))
+	# 	self.G.add_node(Vertex(2,0))
+	# 	print(Vertex(2,0).rotate(16, 1, center = Vertex(-2,0)))
+	# 	return
+	# 	self.G = UnitDistanceGraph()
+	# 	self.G.add_node(Vertex(0,0))
+	# 	self.G.add_node(Vertex(1,0))
+
+	# 	self.G.add_edge(Vertex(0,0), Vertex(1,0))
+	# 	ColoringGraph(self.G).color()
+
+	# 	self.draw_graph(factor = 2)
+
+
+	# 	self.H = UnitDistanceGraph()
+	# 	self.H.add_edge(Vertex(0,0), Vertex(0.5, math.sqrt(3)/2))
+	# 	ColoringGraph(self.H).color()
+	# 	tkz = TikzDocument('B', self.H, factor = 2)
+	# 	tkz.draw()
+
+
+	# 	self.G = self.G.minkowskiSum(self.H)
+	# 	self.G = self.G.union(UnitDistanceGraph())
+
+	# 	ColoringGraph(self.G).color()
+
+	# 	self.draw_graph(factor = 2)
+
+	# 	self.G = MoserSpindle()
+	# 	ColoringGraph(self.G).color()
+
+	# 	self.draw_graph(factor = 2)
+
+
 	def pic(self):
-
-		self.G = UnitDistanceGraph()
-		self.G.add_node(Vertex(-2,0))
-		self.G.add_node(Vertex(2,0))
-		print(Vertex(2,0).rotate(16, 1, center = Vertex(-2,0)))
-		return
-		self.G = UnitDistanceGraph()
-		self.G.add_node(Vertex(0,0))
-		self.G.add_node(Vertex(1,0))
-
-		self.G.add_edge(Vertex(0,0), Vertex(1,0))
-		ColoringGraph(self.G).color()
-
-		self.draw_graph(factor = 2)
+		myS = G()
+		print('n = {}\tm = {}'.format(myS.n, myS.m))
+		myS.save_graph('G')	
+		# myS.update_and_sort()
+		# print('A colorear!')
+		# coloring = ColoringGraph(myS)
+		# if coloring.color():
+		# 	print('DONE')
+		# else:
+		# 	print('NO COLORABLE!!!')
 
 
-		self.H = UnitDistanceGraph()
-		self.H.add_edge(Vertex(0,0), Vertex(0.5, math.sqrt(3)/2))
-		ColoringGraph(self.H).color()
-		tkz = TikzDocument('B', self.H, factor = 2)
-		tkz.draw()
-
-
-		self.G = self.G.minkowskiSum(self.H)
-		self.G = self.G.union(UnitDistanceGraph())
-
-		ColoringGraph(self.G).color()
-
-		self.draw_graph(factor = 2)
-
-		self.G = MoserSpindle()
-		ColoringGraph(self.G).color()
-
-		self.draw_graph(factor = 2)
 
 	def show_menu(self):
 		print("\t**********************************")

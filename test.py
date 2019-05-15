@@ -4,7 +4,9 @@ import networkx as nx
 import math
 import time
 
-from graphs import Vertex, UnitDistanceGraph, H, V, W, M, MoserSpindle
+from vertex import Vertex
+
+from graphs import UnitDistanceGraph, H, V, W, M, MoserSpindle
 from graphs import J, K, L, T, U
 
 
@@ -44,13 +46,6 @@ class TestColoring():
 		G = W()
 		G.update_and_sort()
 		G.color_graph(5)
-		self.check_coloring(G)
-
-
-	def test_W_4(self):
-		G = W()
-		G.update_and_sort()
-		G.color_graph(4)
 		self.check_coloring(G)
 
 class TestTriangles():

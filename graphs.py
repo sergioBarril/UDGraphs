@@ -6,142 +6,19 @@ import decimal
 import itertools as it
 import collections
 
+
 import random
 import math
 from math import isclose, sqrt, sin, cos, acos, asin, fabs, pi
 
+
+from vertex import Vertex
 from color import ColoringGraph
 from tikz import TikzDocument
 
+
 abs_tol = 0.02
 rel_tol = 1.e-4
-
-class Vertex:
-	"""Vertex of the graph. Contains coordinates and color"""
-	def __init__(self, x, y):
-		self.x = x
-		self.y = y
-		self.r = self.getR()
-
-		self.id = None
-
-		self.color = -1
-		self.uncolorable_nodes = []
-		self.banned_colors = []
-
-	def __str__(self):
-		""" (x, y)[color] """
-
-		vertex = '({}, {})'.format(round(self.x, 3), round(self.y, 3), self.color)
-		color = '[{}]'.format(self.color)
-
-		if self.color != -1:
-			return vertex + color
-		else:
-			return vertex
-
-	def __hash__(self):
-		"""
-		Hashes with the first three decimal places, rounded
-		"""
-		round_x = round(self.x, 3)
-		round_y = round(self.y, 3)
-
-		hash1 = hash(round_x)
-		hash2 = hash(round_y)
-
-		return hash((hash1, hash2))
-
-	def __add__(self, v):
-		""" Sum of 2 vertices """
-		return Vertex(self.x + v.x, self.y + v.y)
-
-	def __sub__(self, v):
-		""" Subtraction of 2 vertices """
-		return Vertex(self.x - v.x, self.y - v.y)
-
-	def __truediv__(self, num):
-		""" Division of the Vertex by a number """
-		if isinstance(num, Vertex):
-			return NotImplemented
-		return Vertex(self.x/num, self.y/num)
-
-
-	def __eq__(self, other):
-		if not isinstance(other, Vertex):
-			return NotImplemented
-		return round(self.x, 3) == round(other.x, 3) and round(self.y, 3) == round(other.y, 3)
-
-	def dist(self, v):
-		"""
-		Returns its Euclidean distance to another vertex
-		"""
-		x = self.x - v.x
-		x = x * x
-
-		y = self.y - v.y
-		y = y * y
-
-		return sqrt(x + y)
-
-	def isUnitDist(self, v):
-		"""
-		Given two vertices, check whether they're at unit distance from each other.
-		"""
-		return isclose(1, self.dist(v), rel_tol= 1.e-9, abs_tol = 0)
-
-	def isColored(self):
-		return self.color > 0
-	
-	def color(self, color):
-		self.color = color
-
-	def rotate(self, i, k = None, center = None):
-		"""
-		Returns a vertex rotated with respect to the given center, or
-		(0,0) as a default center.
-		
-		If k is given:
-			i changes the angle, where angle = arccos(2i-1 / 2i)
-			k changes how many times is the rotation applied
-		Else:
-			i is the angle, in radians
-		"""
-		if center is None:
-			center = Vertex(0,0)
-
-		if k is None:
-			alpha = i
-		else:
-			alpha = (2 * i - 1)/(2 * i)
-			alpha = acos(alpha)
-			alpha *= k
-
-		c = center
-		x = (self.x - c.x) * cos(alpha) - (self.y - c.y) * sin(alpha) + c.x
-		y = (self.x - c.x) * sin(alpha) + (self.y - c.y) * cos(alpha) + c.y
-
-		return Vertex(x,y)
-
-	def getR(self):
-		"""
-		Returns the distance to (0,0)
-		"""
-		x2 = self.x * self.x
-		y2 = self.y * self.y
-
-		return sqrt(x2 + y2)
-
-	def true_eq(self, other):
-		"""
-		Checks if this vertex is close enough to another one to be considered the same.
-		I'll probably change all of this, it's probably unnecessary
-		"""
-		caseA = isclose(self.x, other.x, rel_tol= rel_tol, abs_tol= 5*abs_tol) and isclose(self.y, other.y, rel_tol= rel_tol, abs_tol=abs_tol)
-		caseB = isclose(self.x, other.x, rel_tol= rel_tol, abs_tol= abs_tol) and isclose(self.y, other.y, rel_tol= rel_tol, abs_tol=5*abs_tol)
-
-		same = self.x - other.x == 0 and self.y - other.y == 0
-		return caseA or caseB or same
 
 class UnitDistanceGraph:
 	"""Graph with edges of distance 1"""
@@ -219,7 +96,7 @@ class UnitDistanceGraph:
 			i changes the angle, where angle = arccos(2i-1 / 2i)
 			k changes how many times is the rotation applied
 		Else:
-			i is the angle, in radians
+			i is the angle, in radians		
 		"""
 
 		if center is None:
@@ -236,6 +113,7 @@ class UnitDistanceGraph:
 
 		for v in self.graph.nodes:
 			vr = v.rotate(alpha, center = center)
+			R.add_node(vr)
 			for w in self.graph[v]:
 				wr = w.rotate(alpha, center = center)
 				R.copy_edge(vr, wr)
@@ -372,7 +250,16 @@ class UnitDistanceGraph:
 
 		return M
 
+	def negative_y(self):
+		"""
+		Returns the reflection of this graph with respect
+		to the x-axis
+		"""
+		G = UnitDistanceGraph()
+		for v in set(self.graph.nodes):
+			G.add_node(Vertex(v.x, -v.y))
 
+		return G
 
 	#	**********************************************************************
 	#								VERTEX SORTING
@@ -1026,3 +913,94 @@ class PetersenGraph(UnitDistanceGraph):
 
 		self.graph = PG.graph
 		self.update()
+
+class G(UnitDistanceGraph):
+	def __init__(self):
+		UnitDistanceGraph.__init__(self)
+
+		S = UnitDistanceGraph()
+		self.fill_nodes(S)		
+		S.graph = S.union(UnitDistanceGraph()).graph
+		S.update()
+
+		Sa = S.union(S.negative_y())
+
+		for k in range(1, 7):
+		 	Sr = S.rotate(1, k, center = Vertex(0,0))
+		 	Sa = Sa.union(Sr)
+
+		Sa = Sa.union(Sa.negative_y())
+
+		self.graph = Sa.graph
+		self.update()
+		
+		Sb = Sa.rotate(4, 1)
+
+		Y = Sa.union(Sb)
+
+		Y.remove_node(Vertex(1/3, 0))
+		Y.remove_node(Vertex(-1/3, 0))
+
+		Ya = Y.rotate(16, 0.5, center = Vertex(-2,0))
+		Ya = Ya.rotate(math.pi/2, center = Vertex(-2,0))
+
+		Yb = Y.rotate(16, -0.5, center = Vertex(-2, 0))
+		Yb = Yb.rotate(math.pi/2, center = Vertex(-2, 0))
+
+		self.graph = Ya.union(Yb).graph
+		self.update()
+
+	def fill_nodes(self, UDGraph):
+		UDGraph.add_node(Vertex(0,0))
+		UDGraph.add_node(Vertex(1/3, 0))
+		UDGraph.add_node(Vertex(1, 0))
+		UDGraph.add_node(Vertex(2, 0))
+		UDGraph.add_node(Vertex((sqrt(33) - 3)/6, 0))
+		UDGraph.add_node(Vertex(1/2, 1/sqrt(12)))
+		UDGraph.add_node(Vertex(1, 1/sqrt(3)))
+		UDGraph.add_node(Vertex(3/2, sqrt(3)/2))
+
+		UDGraph.add_node(Vertex(7/6, sqrt(11)/6))
+		UDGraph.add_node(Vertex(1/6, (sqrt(12) - sqrt(11))/6))
+		UDGraph.add_node(Vertex(5/6, (sqrt(12) - sqrt(11))/6))
+
+		UDGraph.add_node(Vertex(2/3, (sqrt(11) - sqrt(3))/6))
+		UDGraph.add_node(Vertex(2/3, (3*sqrt(3) - sqrt(11))/6))
+		UDGraph.add_node(Vertex(sqrt(33)/6, 1/sqrt(12)))
+
+		UDGraph.add_node(Vertex((sqrt(33) + 3)/6, 1/sqrt(3)))
+		UDGraph.add_node(Vertex((sqrt(33) + 1)/6, (3*sqrt(3) - sqrt(11))/6))
+		UDGraph.add_node(Vertex((sqrt(33) - 1)/6, (3*sqrt(3) - sqrt(11))/6))
+
+		UDGraph.add_node(Vertex((sqrt(33) + 1)/6, (sqrt(11) - sqrt(3))/6))
+		UDGraph.add_node(Vertex((sqrt(33) - 1)/6, (sqrt(11) - sqrt(3))/6))
+
+		UDGraph.add_node(Vertex((sqrt(33) - 2)/6, (2*sqrt(3) - sqrt(11))/6))
+		UDGraph.add_node(Vertex((sqrt(33) - 4)/6, (2*sqrt(3) - sqrt(11))/6))
+
+		UDGraph.add_node(Vertex((sqrt(33) + 13)/12, (sqrt(11) - sqrt(3))/12))
+		UDGraph.add_node(Vertex((sqrt(33) + 11)/12, (sqrt(3) + sqrt(11))/12))
+
+		UDGraph.add_node(Vertex((sqrt(33) + 9)/12, (sqrt(11) - sqrt(3))/4))
+		UDGraph.add_node(Vertex((sqrt(33) + 9)/12, (3*sqrt(3) + sqrt(11))/12))
+
+		UDGraph.add_node(Vertex((sqrt(33) + 7)/12, (sqrt(3) + sqrt(11))/12))
+		UDGraph.add_node(Vertex((sqrt(33) + 7)/12, (3*sqrt(3) - sqrt(11))/12))
+
+		UDGraph.add_node(Vertex((sqrt(33) + 5)/12, (5*sqrt(3) - sqrt(11))/12))
+		UDGraph.add_node(Vertex((sqrt(33) + 5)/12, (sqrt(11) - sqrt(3))/12))
+
+		UDGraph.add_node(Vertex((sqrt(33) + 3)/12, (3*sqrt(11) - 5*sqrt(3))/12))
+		UDGraph.add_node(Vertex((sqrt(33) + 3)/12, (sqrt(3) + sqrt(11))/12))
+
+		UDGraph.add_node(Vertex((sqrt(33) + 3)/12, (3*sqrt(3) - sqrt(11))/12))
+		UDGraph.add_node(Vertex((sqrt(33) + 1)/12, (sqrt(11) - sqrt(3))/12))
+
+		UDGraph.add_node(Vertex((sqrt(33) - 1)/12, (3*sqrt(3) - sqrt(11))/12))
+		UDGraph.add_node(Vertex((sqrt(33) - 3)/12, (sqrt(11) - sqrt(3))/12))
+
+		UDGraph.add_node(Vertex((15 - sqrt(33))/12, (sqrt(11) - sqrt(3))/4))
+		UDGraph.add_node(Vertex((15 - sqrt(33))/12, (7*sqrt(3) - 3*sqrt(11))/12))
+
+		UDGraph.add_node(Vertex((13 - sqrt(33))/12, (3*sqrt(3) - sqrt(11))/12))
+		UDGraph.add_node(Vertex((11 - sqrt(33))/12, (sqrt(11) - sqrt(3))/12))

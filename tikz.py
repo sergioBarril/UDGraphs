@@ -1,8 +1,4 @@
 import os
-
-# from graphs import Vertex, UnitDistanceGraph, H, V, W, M
-# from graphs import MoserSpindle, J, K, L, T, U
-
 import math
 import subprocess
 
