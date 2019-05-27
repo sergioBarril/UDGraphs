@@ -1,19 +1,15 @@
-import matplotlib.pyplot as plt
 import networkx as nx
 import copy
 import os
-import decimal
 import itertools as it
-import collections
 
-
-import random
 import math
 from math import isclose, sqrt, sin, cos, acos, asin, fabs, pi
 
 
 from vertex import Vertex
 from color import ColoringGraph
+from sat import UDGSat
 from tikz import TikzDocument
 
 
@@ -408,79 +404,13 @@ class UnitDistanceGraph:
 	#								COLORING
 	#	**********************************************************************
 
-	def available_colors(self, v, colors):
-		"""
-		Returns a list with the available colors for vertex v
-		"""
-		available = [color for color in range(1, colors + 1) if color not in v.banned_colors]
+	def color_graph(self, colors = 4, new = True):
+		cg = ColoringGraph(self, colors = colors, new = new)
+		return cg.color()
 
-		for z in self.graph[v]:
-			for w in self.sorted_nodes:
-				if z == w and w.color in available:
-					available.remove(w.color)
-		return available
-
-	def color_node(self, v, colors):
-		remaining_colors = self.available_colors(v, colors)		
-		if not remaining_colors:
-			return False
-
-		backtrack = False
-
-		for color in remaining_colors:
-			v.color = color	
-			neighbours = [w for w in self.sorted_nodes if w in self.graph[v]]
-			for w in neighbours:									
-				if not w.isColored():
-					if not self.available_colors(w, colors): # If w doesn't have legal colors
-						backtrack = True
-						break
-					elif len(self.available_colors(w, colors)) == 1:
-						colored = self.color_node(w, colors)
-						v.uncolorable_nodes.append(w) # In case we need to backtrack, we'll uncolor w
-						if not colored:
-							backtrack = True
-							break			
-			if not backtrack:
-				return True
-			self.uncolor_node(v)
-			backtrack = False
-		return False
-
-	def uncolor_node(self, v):
-		v.color = -1
-		uncolorable = [w for w in self.sorted_nodes if w in v.uncolorable_nodes]
-		for w in uncolorable:
-			self.uncolor_node(w)
-			v.uncolorable_nodes.remove(w)
-
-	def color_graph(self, colors=4):
-		if self.sorted_nodes is None or len(self.sorted_nodes) < self.n:
-			self.update_and_sort()
-			print('Nodes sorted.')
-
-		i = 0
-		colored_nodes = []		
-		while i < len(self.sorted_nodes):
-			v = self.sorted_nodes[i]
-			if not v.isColored():
-				colored = self.color_node(v, colors)
-				if not colored: # If it couldn't be colored:				
-					if colored_nodes: # If there's some v to backtrack to
-						i = colored_nodes.pop()
-						w = self.sorted_nodes[i]					
-						w.banned_colors.append(w.color)
-						v.banned_colors = []
-						self.uncolor_node(w)
-					else:
-						print("This graph can't be colored with {} colors".format(colors))
-						return False
-				else:					
-					colored_nodes.append(i)
-					i += 1
-			else:				
-				i += 1
-		return True
+	def sat_color(self, colors = 4):
+		sat = UDGSat(self, colors = colors)
+		return sat.solve(color = True)
 
 	def uncolor_graph(self):
 		for v in self.sorted_nodes:
@@ -488,6 +418,12 @@ class UnitDistanceGraph:
 		self.update()
 
 	def search_vertex(self, v):
+		"""
+		Given a Vertex, finds that vertex in the graph.
+		
+		This is relevant for coloring problems, since 'Vertex(x,y)' would
+		create a new vertex, thus not coloring the vertex we need.
+		"""
 		for w in self.sorted_nodes:
 			if w == v:
 				return w
@@ -531,7 +467,7 @@ class UnitDistanceGraph:
 				f.write('{} {} {} {}\n'.format(v.x, v.y, w.x, w.y))
 
 	def save_dimacs(self, fname):
-		with open(os.path.join('graph_edges', fname + '.col'), 'w') as f:
+		with open(os.path.join('dimacs', fname + '.col'), 'w') as f:
 			f.write('c FILE: {}\n'.format(fname + '.col'))
 			f.write('c\n')
 			f.write('p edge {} {}\n'.format(self.n, self.m))
@@ -547,10 +483,13 @@ class UnitDistanceGraph:
 			for v, w in self.graph.edges:
 				f.write("e {} {}\n".format(id_nodes_dict[v], id_nodes_dict[w]))
 
-		with open(os.path.join('graph_edges', fname + '.dict'), 'w') as f:
+		with open(os.path.join('dimacs', fname + '.dict'), 'w') as f:
 			for v, v_id in id_nodes_dict.items():
 				f.write("{} {} {}\n".format(v_id, v.x, v.y))
 
+	def save_cnf(self, fname, colors = 4):
+		sat = UDGSat(self, colors)
+		sat.save_cnf(fname)
 
 	def load_vertices(self, fname):
 		"""
@@ -914,33 +853,40 @@ class PetersenGraph(UnitDistanceGraph):
 		self.graph = PG.graph
 		self.update()
 
+
+
+
+class SA(UnitDistanceGraph):
+	def __init__(self, S):
+		UnitDistanceGraph.__init__(self)
+		# Sa = S.union(S.negative_y())
+		Sa = S
+
+		for k in range(1, 7):
+			Sr = S.rotate(1, k, center = Vertex(0,0))
+			Sa = Sa.union(Sr)
+
+		Sa = Sa.union(Sa.negative_y())
+		self.graph = Sa.graph
+		self.update()
+
 class G(UnitDistanceGraph):
 	def __init__(self):
 		UnitDistanceGraph.__init__(self)
 
 		S = UnitDistanceGraph()
-		self.fill_nodes(S)		
-		S.graph = S.union(UnitDistanceGraph()).graph
+		self.fill_nodes(S)
 		S.update()
 
-		Sa = S.union(S.negative_y())
+		Sa = SA(S)
 
-		for k in range(1, 7):
-		 	Sr = S.rotate(1, k, center = Vertex(0,0))
-		 	Sa = Sa.union(Sr)
-
-		Sa = Sa.union(Sa.negative_y())
-
-		self.graph = Sa.graph
-		self.update()
-		
 		Sb = Sa.rotate(4, 1)
 
 		Y = Sa.union(Sb)
 
 		Y.remove_node(Vertex(1/3, 0))
 		Y.remove_node(Vertex(-1/3, 0))
-
+		
 		Ya = Y.rotate(16, 0.5, center = Vertex(-2,0))
 		Ya = Ya.rotate(math.pi/2, center = Vertex(-2,0))
 

@@ -33,6 +33,10 @@ def tex2png(formula, fname, fontsize=12, dpi=300):
 	plt.close(fig)
 	return file
 
+
+# **********************************************************
+#	 					NEW GRAPH
+# **********************************************************
 class GraphsDialog(QDialog, Ui_GraphsDialog):
 	def __init__(self, parent):
 		super(GraphsDialog, self).__init__(parent)
@@ -52,6 +56,7 @@ class GraphsDialog(QDialog, Ui_GraphsDialog):
 		self.btn_U.clicked.connect(lambda ignore, graph='U' : self.setGraph(graph))
 		self.btn_V.clicked.connect(lambda ignore, graph='V' : self.setGraph(graph))
 		self.btn_W.clicked.connect(lambda ignore, graph='W' : self.setGraph(graph))
+		self.btn_G.clicked.connect(lambda ignore, graph='G' : self.setGraph(graph))
 		self.btn_moser.clicked.connect(lambda ignore, graph="Moser" : self.setGraph(graph))
 		self.btn_pentagon.clicked.connect(lambda ignore, graph='C5' :self.setGraph(graph))
 		self.btn_pentagram.clicked.connect(lambda ignore, graph='Pentagram' : self.setGraph(graph))
@@ -59,10 +64,10 @@ class GraphsDialog(QDialog, Ui_GraphsDialog):
 		
 	def setGraph(self, graph):
 		graphs = ['H', 'J', 'K', 'L', 'T', 'U', 'V', 'W', 'M', "Moser", 
-		"C5","PG", "Pentagram"]
+		"C5","PG", "Pentagram", 'G']
 
 		graphs_fun = [H, J, K, L, T, lambda : print('Not implemented'), V, W, M,
-		 MoserSpindle, RegularPentagon, PetersenGraph, FStar]
+		 MoserSpindle, RegularPentagon, PetersenGraph, FStar, G]
 		
 		for i in range(len(graphs)):
 			if graph == graphs[i]:
@@ -393,11 +398,13 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
 		if self.G is None:			
 			self.G_options.hide()
+			self.btn_clear.hide()
 			self.btn_operators.hide()
 		else:
 			if self.Gname == 'M':
 				self.btn_M_property.show()
 			self.G_options.show()
+			self.btn_clear.show()
 			self.btn_operators.show()
 			self.btn_graph.setText('Create new graph G')
 
@@ -480,7 +487,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 		else:
 			fname = self.Gname
 
-		hard = self.G.n >= 800		
+		hard = self.G.n >= 650		
 		factor = self.drawScaling.value()			
 		tkz = TikzDocument(fname, self.G, factor)
 		tkz.draw(hard)
@@ -490,11 +497,9 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 		maxColors = self.maxColors.value()
 
 		if self.sat_color.isChecked():
-			cg = UDGSat(self.G, colors = maxColors)
-			colored = cg.solve(color = True)
-		else:		
-			cg = ColoringGraph(self.G, colors = maxColors, new = True)
-			colored = cg.color()
+			colored = self.G.sat_color(colors = maxColors)					
+		else:
+			colored = self.G.color_graph(colors = maxColors, new = True)						
 
 		msg = QMessageBox()
 		msg.setWindowIcon(QIcon(os.path.join('GUI', 'appicon.ico')))
@@ -512,10 +517,34 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 		msg.exec()
 
 	def print_graph(self):
-		self.G.save_graph(self.Gname)
+		try:
+			printed = True
+			self.G.save_graph(self.Gname)
 
-		if self.dimacs.isChecked():
-			self.G.save_dimacs(self.Gname)
+			if self.dimacs.isChecked():
+				self.G.save_dimacs(self.Gname)
+
+			if self.cnf.isChecked():
+				maxColors = self.maxColors.value()
+				self.G.save_cnf(self.Gname, maxColors)
+		except Exception as e:
+			printed = False
+			print(e)
+		finally:
+			msg = QMessageBox()
+			msg.setWindowIcon(QIcon(os.path.join('GUI', 'appicon.ico')))
+			msg.setWindowTitle("Print Graph")
+			msg.setStandardButtons(QMessageBox.Ok)
+
+			if printed:
+				msg.setIcon(QMessageBox.Information)
+				msg.setText("Graph printed successfully.")				
+			else:
+				msg.setIcon(QMessageBox.Critical)
+				msg.setText("Something went wrong.")
+				msg.setText("The graph couldn't be printed.")
+
+			msg.exec()
 
 	def check_M_property(self):
 		msg = QMessageBox()

@@ -7,7 +7,15 @@ import time
 from vertex import Vertex
 
 from graphs import UnitDistanceGraph, H, V, W, M, MoserSpindle
-from graphs import J, K, L, T, U
+from graphs import J, K, L, T, U, G
+
+class TestG():
+	def testG(self):
+		myG = G()
+		myG.update()
+
+		for v, w in myG.graph.edges:
+			assert v.isUnitDist(w)
 
 
 class TestColoring():

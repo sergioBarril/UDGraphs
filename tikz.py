@@ -55,8 +55,8 @@ class TikzDocument():
 					if (v, w) in self.G.edges:
 						f.write('\t\\Edge({})({})\n'.format(v.id, w.id))
 
-	def add_colors(self, colors = 5):
-		col_dict = {0: 'yellow!15', 1: 'yellow!30', 2:'red!30', 3:'blue!30', 4:'green!30', 5:'olive!30'}
+	def add_colors(self, colors = 6):
+		col_dict = {0: 'yellow!15', 1: 'yellow!30', 2:'red!30', 3:'blue!30', 4:'green!30', 5:'cyan!30', 6:'orange!30'}
 
 		nodes = [""]*(colors + 1)
 

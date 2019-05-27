@@ -100,18 +100,25 @@ class App():
 
 
 	def pic(self):
-		myH = W()
 
-		sat = UDGSat(myH, 4)
+		v = Vertex(1,0)
+		w = v.rotate(1,3)
+		print(v.dist(w))
 
-		solution = sat.solve(True)
-		if not solution:
-			print("Unsatisfiable!")
-		else:
-			print("Satisfiable.")
 
-		tkz = TikzDocument(str(random.randint(1,100000)), myH, 2.5)
-		tkz.draw()
+
+		# myH = W()
+
+		# sat = UDGSat(myH, 4)
+
+		# solution = sat.solve(True)
+		# if not solution:
+		# 	print("Unsatisfiable!")
+		# else:
+		# 	print("Satisfiable.")
+
+		# tkz = TikzDocument(str(random.randint(1,100000)), myH, 2.5)
+		# tkz.draw()
 
 
 

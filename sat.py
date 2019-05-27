@@ -9,19 +9,36 @@ class UDGSat():
 		self.toId, self.toNode = self.translate()
 		self.k = colors
 		self.cnf = []
-		
-		self.hasColor_clause()
-		self.onlyOneColor_clause()
+
+		self.triangle_clause()
+		self.hasColor_clause()		
 		self.edgeColor_clause()
+
+	
+	def save_cnf(self, fname):
+		with open(os.path.join('cnf', fname + '.cnf'), 'w') as f:
+			f.write('c FILE: {}\n'.format(fname + '.cnf'))
+			f.write('c\n')
+			f.write('p cnf {} {}\n'.format(self.UDG.n * self.k, len(self.cnf)))
+
+			for clause in self.cnf:
+				for literal in clause:
+					f.write('{} '.format(literal))
+				f.write('0\n')
+		
+		with open(os.path.join('cnf', fname + '.dict'), 'w') as f:			
+			for i, v in self.toNode.items():
+				f.write('{} {} {}\n'.format(i, v.x, v.y))
 
 	def solve(self, color = False):
 		print("Solving...")
 		solution = pycosat.solve(self.cnf)
 
-		if solution == 'UNKNOWN':
+		if solution == 'UNKNOWN':			
 			return False
 
 		if solution == 'UNSAT':
+			print("Unsatisfiable")
 			return False
 
 		if color:
@@ -30,10 +47,12 @@ class UDGSat():
 					vid = i % self.UDG.n
 					if vid == 0:
 						vid = self.UDG.n
-
-					k = (i // self.UDG.n) + 1
+						k = (i // self.UDG.n)
+					else:
+						k = (i // self.UDG.n) + 1
 					self.toNode[vid].color = k
 		
+		print("Solved")
 		return True
 
 	def translate(self):
@@ -54,6 +73,50 @@ class UDGSat():
 
 		return toId, toNode
 
+	def triangle_score(self, triangle):
+			v, w = triangle
+			return self.UDG.node_score(v) + self.UDG.node_score(w)
+	
+	def triangle_clause(self):
+		"""
+		The nodes are sorted based on spindles and triangles. We look at all the triangles that contain
+		vertex 1, and color the greatest one.
+		"""
+
+		u = self.UDG.sorted_nodes[0]
+
+		neighbours = self.UDG.graph[u]
+
+		triangles = []
+		
+		# Find all triangles
+		for v, w in it.combinations(neighbours, 2):
+			if v.isUnitDist(w):
+				triangles.append((v, w))
+		
+		# Sort them, and take the best
+		triangles.sort(reverse=True, key=self.triangle_score)
+
+		if triangles:
+			v, w = triangles[0]
+			good_nodes = (u, v, w)
+		elif self.UDG.graph[u]:
+			v = list(self.UDG.graph.adj[u])[0]
+			good_nodes = (u, v)
+		else:
+			good_nodes = tuple((u))
+
+		# Add the clauses		
+		for node in good_nodes:
+			for color in range(self.k):
+				clause = []
+				if good_nodes.index(node) == color:
+					clause.append(self.toId[node] + self.UDG.n * color)
+				else:
+					clause.append(-(self.toId[node] + self.UDG.n * color))
+				self.cnf.append(clause)
+
+
 
 	def hasColor_clause(self):
 		"""
@@ -67,7 +130,8 @@ class UDGSat():
 
 	def onlyOneColor_clause(self):
 		"""
-		Adds the clauses to make sure every vertex has just one color
+		Adds the clauses to make sure every vertex has just one color.
+		This is unnecessary: it's redundant
 		"""
 		for v in self.UDG.sorted_nodes:
 			vid = self.toId[v]

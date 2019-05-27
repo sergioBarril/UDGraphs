@@ -36,9 +36,9 @@
    <widget class="QWidget" name="G_options" native="true">
     <property name="geometry">
      <rect>
-      <x>180</x>
+      <x>140</x>
       <y>260</y>
-      <width>291</width>
+      <width>331</width>
       <height>201</height>
      </rect>
     </property>
@@ -57,6 +57,32 @@
        </property>
        <property name="checked">
         <bool>true</bool>
+       </property>
+      </widget>
+     </item>
+     <item row="5" column="3">
+      <widget class="QCheckBox" name="cnf">
+       <property name="text">
+        <string>CNF</string>
+       </property>
+      </widget>
+     </item>
+     <item row="4" column="1">
+      <widget class="QSpinBox" name="maxColors">
+       <property name="wrapping">
+        <bool>false</bool>
+       </property>
+       <property name="buttonSymbols">
+        <enum>QAbstractSpinBox::UpDownArrows</enum>
+       </property>
+       <property name="minimum">
+        <number>1</number>
+       </property>
+       <property name="maximum">
+        <number>6</number>
+       </property>
+       <property name="value">
+        <number>4</number>
        </property>
       </widget>
      </item>
@@ -117,25 +143,6 @@
        </property>
       </widget>
      </item>
-     <item row="4" column="1">
-      <widget class="QSpinBox" name="maxColors">
-       <property name="wrapping">
-        <bool>false</bool>
-       </property>
-       <property name="buttonSymbols">
-        <enum>QAbstractSpinBox::UpDownArrows</enum>
-       </property>
-       <property name="minimum">
-        <number>1</number>
-       </property>
-       <property name="maximum">
-        <number>6</number>
-       </property>
-       <property name="value">
-        <number>4</number>
-       </property>
-      </widget>
-     </item>
      <item row="5" column="2">
       <widget class="QCheckBox" name="dimacs">
        <property name="text">
@@ -147,13 +154,6 @@
       <widget class="QPushButton" name="btn_print">
        <property name="text">
         <string>Save Graph</string>
-       </property>
-      </widget>
-     </item>
-     <item row="6" column="1">
-      <widget class="QPushButton" name="btn_clear">
-       <property name="text">
-        <string>Clear graph</string>
        </property>
       </widget>
      </item>
@@ -278,13 +278,26 @@
     <property name="geometry">
      <rect>
       <x>490</x>
-      <y>330</y>
-      <width>121</width>
-      <height>51</height>
+      <y>340</y>
+      <width>120</width>
+      <height>50</height>
      </rect>
     </property>
     <property name="text">
      <string>Check property on M</string>
+    </property>
+   </widget>
+   <widget class="QPushButton" name="btn_clear">
+    <property name="geometry">
+     <rect>
+      <x>490</x>
+      <y>280</y>
+      <width>120</width>
+      <height>50</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string>Clear graph</string>
     </property>
    </widget>
   </widget>
