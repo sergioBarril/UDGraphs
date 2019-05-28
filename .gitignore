@@ -1,6 +1,8 @@
 __pycache__/
-auxFiles/
-tikz/
+*.aux
+*.log
+*.pdf
+*.tex
 texLabels/
 *.pyc
 *.e
