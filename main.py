@@ -94,11 +94,10 @@ class GraphCalculatorDialog(QDialog, Ui_Graph_Calculator):
 		self.G = parent.G
 		self.Gname = parent.Gname
 		self.Gformula = parent.Gformula
-		
+
 		self.todo = collections.deque()
 		self.todo_dict = {0: self.union, 1: self.minkowski, 2: self.trim,
 			3: self.rotate, 4: self.rotate}
-
 		
 		self.graph_built = False
 

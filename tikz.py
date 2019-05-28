@@ -4,6 +4,20 @@ import subprocess
 
 
 class TikzDocument():
+	"""
+	The TikzDocument class takes care of drawing the resulting graph, using up to 6 colors.
+
+	The output will be drawn in the tikz/ folder, and its texFile  in tikz/texFiles
+
+	#### Parameters ####
+		fname = name of output file
+		UDGraph = unit distance graph to draw
+		factor = edge length, thus effectively making the vertices smaller and the edges longer
+
+	### Observations ###
+
+		This makes use of the'pdflatex' and/or 'lualatex' commands, otherwise it won't compile the pdf.
+	"""
 	def __init__(self, fname, UDGraph, factor = 1):
 		texFolder = os.path.join('tikz', 'texFiles')
 		self.fname = os.path.join(texFolder, fname + '.tex')
@@ -12,6 +26,9 @@ class TikzDocument():
 		self.factor = factor
 
 	def open_new(self):
+		"""
+		Starts writing the preamble on the .tex file
+		"""
 		with open(self.fname, 'w') as f:
 			f.write(r"""\documentclass[border=2mm, tikz]{standalone}
 \usepackage{tkz-graph}
@@ -33,12 +50,18 @@ class TikzDocument():
 """)			
 	
 	def end(self):
+		"""
+		Closes the .tex file
+		"""
 		with open(self.fname, 'a') as f:
 			f.write(r"""
 \end{tikzpicture}
 \end{document}""")
 
 	def add_nodes(self):
+		"""
+		Adds all the nodes to draw in the .tex file
+		"""
 		with open(self.fname, 'a') as f:
 			f.write("\n%%%%%%%%%% ADDING NODES %%%%%%%%%%%%%\n\n")
 			i = 0
@@ -48,6 +71,9 @@ class TikzDocument():
 				i += 1
 
 	def add_edges(self):
+		"""
+		Adds all the edgegs to draw in the .tex file
+		"""
 		with open(self.fname, 'a') as f:
 			f.write("%%%%%%%%%% ADDING EDGES %%%%%%%%%%%%%\n\n")
 			for v in self.G.nodes:			
@@ -56,6 +82,9 @@ class TikzDocument():
 						f.write('\t\\Edge({})({})\n'.format(v.id, w.id))
 
 	def add_colors(self, colors = 6):
+		"""
+		Adds all the colors to the vertices
+		"""
 		col_dict = {0: 'yellow!15', 1: 'yellow!30', 2:'red!30', 3:'blue!30', 4:'green!30', 5:'cyan!30', 6:'orange!30'}
 
 		nodes = [""]*(colors + 1)
@@ -73,6 +102,9 @@ class TikzDocument():
 					f.write("\t\\AddVertexColor{{{}}}{{{}}}\n".format(col_dict[i], nodes[i]))
 
 	def run(self, hard=False):
+		"""
+		Compiles the .texFile using pdflatex or lualatex.
+		"""
 		texFiles = os.path.join('tikz', 'texFiles')
 		auxFiles = os.path.join(texFiles, 'auxFiles')
 
@@ -88,6 +120,9 @@ class TikzDocument():
 		self.p = subprocess.Popen([self.pdfname],shell=True)
 
 	def draw(self, hard=False):
+		"""
+		Using all of the methods above, draws the graph
+		"""
 		self.open_new()
 
 		self.add_nodes()
