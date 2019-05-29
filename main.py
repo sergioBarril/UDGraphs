@@ -82,55 +82,93 @@ class GraphsDialog(QDialog, Ui_GraphsDialog):
 
 
 
+
+
+
+
+
+
+
+
+
+
+
 # **********************************************************
 #	 					GRAPH  OPERATIONS
 # **********************************************************
 
 class GraphCalculatorDialog(QDialog, Ui_Graph_Calculator):
+	"""
+	Dialog that given the previous graph, builds a new graph
+	There are several operators:
+		· Rotation
+		· Special Rotation
+		· Trim
+		· Union
+		· Minkowski Sum
+	"""
 	def __init__(self, parent):
 		super(GraphCalculatorDialog, self).__init__(parent)
 		self.setupUi(self)
+
 
 		self.G = parent.G
 		self.Gname = parent.Gname
 		self.Gformula = parent.Gformula
 
+
+		self.isLoading = False
+
+		self.binary = None
+		self.memMode = False
+
+
+		self.mainTodo = None
+
 		self.todo = collections.deque()
+		self.memTodo = collections.deque() # Each memory save will be a new deque.
+
 		self.todo_dict = {0: self.union, 1: self.minkowski, 2: self.trim,
-			3: self.rotate, 4: self.rotate}
+			3: self.rotate, 4: self.rotate, 6: self.new_graph}
 		
 		self.graph_built = False
 
-		self.btn_union.clicked.connect(self.union_mode)
-		self.btn_minkowski.clicked.connect(self.minkowski_mode)
 
-		self.btn_trim.clicked.connect(self.trim_enqueue)
-		self.btn_rotate.clicked.connect(self.rotate_enqueue)
-		self.btn_rotate_sp.clicked.connect(self.rotate_sp_enqueue)
+		self.btn_merge.hide()
+		self.lb_mem.hide()
+		self.btn_mem.setEnabled(False)
 
-		self.btn_undo.clicked.connect(self.undo)
-
-		self.btn_ok.clicked.connect(self.build_graph)
-		self.btn_cancel.clicked.connect(self.cancel)
-
-		self.connect_graphs()
-		self.hide_graphs()
-		self.set_names()
+		self.connect_buttons()		
+		self.update()
 
 
 	def build_graph(self):
+		"""
+		Executes all commands stored in the stack
+		It then closes the dialog.
+		"""
 		self.run()
 		self.graph_built = True
-		self.close()		
+		self.close()
 
 	def cancel(self):
+		"""
+		Closes the dialog without building any graph
+		"""
 		self.close()		
 
 	def getData(self):
+		"""
+		Returns the resulting graph
+		"""
 		if self.graph_built:
 			return self.G, self.Gname, self.Gformula
 
 	def undo(self):
+		"""
+		Undoes last set action. That is, it removes last
+		added command on the stack
+		"""
 		if self.todo:
 			undone = self.todo.pop()
 			if undone[0] < 2: # UNION OR MINKOWSKI
@@ -165,73 +203,351 @@ class GraphCalculatorDialog(QDialog, Ui_Graph_Calculator):
 				new_formula = self.Gformula[len(undone[2]):-1]
 				new_name = self.Gname[4:-1]
 
+			elif undone[0] == 5: # STORE IN MEMORY
+				old_G = self.mem.pop()
+				self.G, new_name, new_formula = old_G
 
-			self.Gformula = new_formula
-			self.Gname = new_name
+			elif undone[0] == 6: # NEW GRAPH
+				# Reinitialize the graph
+				new_name = 'None'
+				new_formula = r"\mathrm{None}"
 
+				self.binary = None
+			
+			elif undone[0] == 7: # MERGE
+				self.memMode = True
+				self.mainTodo = self.todo #Store main deque
+				self.todo = self.memTodo.pop() #Focus on memory deque
+				
+				new_name, new_formula = undone[1]
 
-		self.set_names()
+		
+		elif self.mainTodo:
+			self.todo = self.mainTodo
+			self.Gname, self.Gformula = self.todo.pop()[1]
+			self.memMode = False
+			self.undo()	
 
+			new_formula = self.Gformula
+			new_name = self.Gname
+		else:
+			return
+
+		self.Gformula = new_formula
+		self.Gname = new_name
+
+		self.update()
 
 	def run(self):
+		"""
+		Runs all operations
+		"""
 		while self.todo:
 			action = self.todo.popleft()
-			self.G = self.todo_dict[action[0]](action[1])		
+			if not(action[0] == 5 or action[0] == 7):
+				self.G = self.todo_dict[action[0]](action[1])
 
-	
+	def run_mem(self):
+		"""
+		Builds next graph in memory, and returns it.
+		"""
 
-	#************** BINARY OPERATIONS *************
-	# Toggle graph buttons
-	def union_mode(self):
-		self.show_graphs()
-		self.binary = 0
+		# Save current graph
+		oldG = self.G
 
-	def minkowski_mode(self):
-		self.show_graphs()
-		self.binary = 1
+		if not self.memTodo:
+			raise Exception("Empty memory")
+
+		# Take the instructions to build the next graph.
+		newTodo = self.memTodo.popleft()
+
+		# Iterate to build the new graph.
+		self.G = UnitDistanceGraph()		
+		
+		while newTodo:
+			action = newTodo.popleft()
+			self.G = self.todo_dict[action[0]](action[1])
+
+		# Let G be its former self.
+		F, self.G = self.G, oldG
+		
+		self.todo.popleft() # (5, ...)
+		self.todo.popleft() # (7, ...)
+		return F	
+
+
+		
+
+	# ******************* ENQUEUE **************
 
 	def union_enqueue(self, graph):
+		# If the graph comes from a file:
+		if graph is None and self.isLoading:
+			try:
+				file, filename = self.load_graph()
+				if filename is not None:
+					graph = filename
+				else:
+					return 1
+			except Exception as e:				
+				msg = QMessageBox()
+				msg.setIcon(QMessageBox.Warning)
+				msg.setText('Invalid Files')
+				msg.setInformativeText('Please choosbe a .e file')
+				msg.setWindowTitle("Graph Loading Failed")
+				msg.setWindowIcon(QIcon(os.path.join('GUI', 'appicon.ico')))
+				msg.setStandardButtons(QMessageBox.Ok)
+				msg.exec()
+				return
+			finally:
+				self.isLoading = False
+		else:
+			filename = None
+
+		# If something has been done and it's not a union, put parentheses
 		if self.todo and self.todo[-1][0] == 1:
 			self.Gformula = '({})'.format(self.Gformula)
-		added_formula = ' \\cup {}'.format(graph)
-		added_name = 'u' + graph
-		self.todo.append((0, graph, added_formula, added_name))
+			self.Gname = '({})'.format(self.Gname)
+		
+		# Add the \cup to the formula, and the name
+		added_formula = ' \\cup '
+		added_name = 'u'
 
+		if graph is not None:
+			added_formula += graph
+			added_name += graph
+			
+		# Append to the todolist
+		self.todo.append((0, (graph, self.Gformula, filename), added_formula, added_name))
+
+		# Update attributes
 		self.Gformula += added_formula
 		self.Gname += added_name
-		self.set_names()
+		self.update()
 
 	def minkowski_enqueue(self, graph):
+		# If the graph comes from a file:
+		if graph is None and self.isLoading:
+			try:
+				file, filename = self.load_graph()
+				if filename is not None:
+					graph = filename
+				else:
+					return
+			except Exception as e:				
+				msg = QMessageBox()
+				msg.setIcon(QMessageBox.Warning)
+				msg.setText('Invalid Files')
+				msg.setInformativeText('Please choose a .e file')
+				msg.setWindowTitle("Graph Loading Failed")
+				msg.setWindowIcon(QIcon(os.path.join('GUI', 'appicon.ico')))
+				msg.setStandardButtons(QMessageBox.Ok)
+				msg.exec()
+				return
+			finally:
+				self.isLoading = False
+		else:
+			filename = None
+		
+		# If something has been done and it's not a sum, put parentheses
 		if self.todo and self.todo[-1][0] == 0:
 			self.Gformula = '({})'.format(self.Gformula)
 			self.Gname = '({})'.format(self.Gname)
 		
-		added_formula = ' \\oplus {}'.format(graph)
-		added_name = '+' + graph
+		# Add the \oplus to the formula and the name
+		added_formula = ' \\oplus '
+		added_name = '+ {}'
 
-		self.todo.append((1, graph, added_formula, added_name))		
+		if graph is not None:
+			added_formula += graph
+			added_name += graph
+
+		# Append to the todolist
+		self.todo.append((1, (graph, self.Gformula, filename), added_formula, added_name))
+
+		# Update the attributes
 		self.Gformula += added_formula
 		self.Gname += added_name
-		self.set_names()
+		self.update()
+
+	def trim_enqueue(self):
+		# Add the trim statement, opening a parentheses
+		self.Gformula = '\\mathrm{{trim}}({}, '.format(self.Gformula)
+
+		# Get input, and translate the sqrts and pis
+		plain_text = self.input_trim_dist.text()
+		formula_ready, eval_ready = self.sanitize_input(plain_text)
+		
+		# Update formula, closing the parentheses
+		self.Gformula += formula_ready + ')'
+		self.Gname = 'trim({})'.format(self.Gname)
+
+		# Append to the todolist and update
+		self.todo.append((2, eval(eval_ready)))
+		self.update()
+
+	def rotate_enqueue(self):
+		# Add the rot statement, opening a parentheses
+		self.Gformula = '\\mathrm{{rot}}({}, '.format(self.Gformula)
+
+		# Get input, and translate the sqrts and pis
+		plain_text = self.input_rotate_angle.text()
+		formula_ready, eval_ready = self.sanitize_input(plain_text)
+
+		# Update formula, closing the parentheses
+		self.Gformula += formula_ready + ')'
+		self.Gname = 'rot({})'.format(self.Gname)
+
+		# Append to the todolist and update
+		self.todo.append((3, eval(eval_ready)))
+		self.update()
+
+	def rotate_sp_enqueue(self):
+		# Get the i and k values
+		i = self.rotate_i.value()
+		k = self.rotate_k.value()
+
+		# Formatting theta
+		new_formula = '\\theta_{{{}}}'.format(i)
+
+		if k != 1:
+			new_formula += '^{{{}}}'.format(k)
+		new_formula += '('
+		
+		# Append formula and name
+		self.Gformula = new_formula + '{})'.format(self.Gformula)
+		self.Gname = 'rot({})'.format(self.Gname)
+
+		# Calculate the angle
+		angle = math.acos((2 * i - 1) / (2 * i))
+		angle *= k
+
+		# Update attributes and append to todolist
+		self.todo.append((4, angle, new_formula))
+		self.update()
+
+
+	def store_mem_enqueue(self):
+		# Append either union or minkowski to old list
+		self.binary_router(None)
+
+		# Change focused deque, and append name and formula:
+		self.todo.append((5, (self.Gname, self.Gformula)))
+		self.mainTodo = self.todo	
+		self.todo = collections.deque()
+
+		# Reinitialize the graph
+		self.Gname = 'None'
+		self.Gformula = r"\mathrm{None}"
+
+		self.binary = None
+
+		# Enable elements
+		self.memMode = True				
+
+		self.update()
+
+	def merge(self):
+		# Add to memTodo, and restore main todo
+		self.memTodo.append(self.todo)
+		self.todo = self.mainTodo
+		self.mainTodo = None
+
+		# Merge names and formulas
+		oldname, oldformula = self.todo[-1][1]
+
+		self.todo.append((7, (self.Gname, self.Gformula)))
+
+		self.Gname = oldname + '[{}]'.format(self.Gname)
+		self.Gformula = oldformula + '[{}]'.format(self.Gformula)
+
+		# Change mode:
+		self.memMode = False		
+		self.update()
+
+
+	def new_graph_enqueue(self, graph):
+		# If the graph comes from a file:
+		if self.isLoading:
+			try:
+				file, filename = self.load_graph()
+				if filename is not None:
+					self.todo.append((6, (filename, filename, filename)))
+					self.Gformula = filename
+					self.Gname = filename
+				self.update()
+			except Exception as e:				
+				msg = QMessageBox()
+				msg.setIcon(QMessageBox.Warning)
+				msg.setText('Invalid Files')
+				msg.setInformativeText('Please choose a .e file')
+				msg.setWindowTitle("Graph Loading Failed")
+				msg.setWindowIcon(QIcon(os.path.join('GUI', 'appicon.ico')))
+				msg.setStandardButtons(QMessageBox.Ok)
+				msg.exec()
+				return
+			finally: 
+				self.isLoading = False
+
+		# If the graph comes from a graph button:
+		if graph is not None:
+			self.Gformula = graph
+			self.Gname = graph
+			self.todo.append((6, (graph, graph, None)))
+			self.update()		
+
+	#************** BINARY OPERATIONS *************
+	# Toggle graph buttons
+	def union_mode(self):				
+		self.binary = 0
+		self.update()
+
+	def minkowski_mode(self):				
+		self.binary = 1
+		self.update()
 
 
 	def union(self, graph):
-		F = self.findGraph(graph)
+		if graph[2] is not None:
+			F = UnitDistanceGraph()
+			F.load_graph(graph[2])
+			if F is None:
+				print(graph[2])
+		elif graph[0] is None:
+			F = self.run_mem()
+		else:
+			F = self.findGraph(graph[0])
 		return self.G.union(F)
 
 	def minkowski(self, graph):
-		F = self.findGraph(graph)
+		if graph[2] is not None:
+			F = UnitDistanceGraph()
+			F.load_graph(graph[2])
+		elif graph[0] is None:
+			F = self.run_mem()
+		else:
+			F = self.findGraph(graph[0])
 		return self.G.minkowskiSum(F)
 
 	def binary_router(self, graph):
-		if self.binary == 0:
+		if self.binary is None:
+			self.new_graph_enqueue(graph)
+		elif self.binary == 0:
 			self.union_enqueue(graph)
 		elif self.binary == 1:
-			self.minkowski_enqueue(graph)		
+			self.minkowski_enqueue(graph)
 		self.binary = None
-		self.hide_graphs()
+		self.update()
 
 	# ************** MONARY OPERATORS ************
+
+	def new_graph(self, graph):
+		if graph[2] is None:
+			return self.findGraph(graph[0])
+		else:
+			F = UnitDistanceGraph()
+			F.load_graph(graph[2])
+			return F
 
 	def sanitize_input(self, plain_text):		
 		# This handles sqrts:
@@ -249,51 +565,6 @@ class GraphCalculatorDialog(QDialog, Ui_Graph_Calculator):
 		formula_ready = re.sub(r'{(.+)}/{(.+)}', r'\\frac{\1}{\2} ', formula_ready)
 
 		return formula_ready, eval_ready
-	
-	def trim_enqueue(self):
-
-		self.Gformula = '\\mathrm{{trim}}({}, '.format(self.Gformula)
-
-		plain_text = self.input_trim_dist.text()
-		formula_ready, eval_ready = self.sanitize_input(plain_text)
-		
-		self.Gformula += formula_ready + ')'
-		self.Gname = 'trim({})'.format(self.Gname)
-
-		self.todo.append((2, eval(eval_ready)))
-		self.set_names()
-
-	def rotate_enqueue(self):
-
-		self.Gformula = '\\mathrm{{rot}}({}, '.format(self.Gformula)
-
-		plain_text = self.input_rotate_angle.text()
-		formula_ready, eval_ready = self.sanitize_input(plain_text)
-
-		self.Gformula += formula_ready + ')'
-		self.Gname = 'rot({})'.format(self.Gname)
-
-		self.todo.append((3, eval(eval_ready)))
-		self.set_names()
-
-	def rotate_sp_enqueue(self):
-		i = self.rotate_i.value()
-		k = self.rotate_k.value()
-
-		new_formula = '\\theta_{{{}}}'.format(i)
-
-		if k != 1:
-			new_formula += '^{{{}}}'.format(k)
-		new_formula += '('
-		
-		self.Gformula = new_formula + '{})'.format(self.Gformula)
-		self.Gname = 'rot({})'.format(self.Gname)
-
-		angle = math.acos((2 * i - 1) / (2 * i))
-		angle *= k
-
-		self.todo.append((4, angle, new_formula))
-		self.set_names()
 
 	def trim(self, r):		
 		return self.G.trim(r)
@@ -301,9 +572,36 @@ class GraphCalculatorDialog(QDialog, Ui_Graph_Calculator):
 	def rotate(self, angle):
 		return self.G.rotate(angle)
 
+	
 	# **************** UTILITIES *****************
 
-	def connect_graphs(self):
+	def load_button(self):
+		self.isLoading = True
+		self.binary_router(None)
+
+
+	def connect_buttons(self):
+		# Utilities
+		self.btn_undo.clicked.connect(self.undo)
+		self.btn_mem.clicked.connect(self.store_mem_enqueue)
+
+		self.btn_merge.clicked.connect(self.merge)		
+
+		self.btn_ok.clicked.connect(self.build_graph)
+		self.btn_cancel.clicked.connect(self.cancel)
+
+
+		# Operators
+		self.btn_union.clicked.connect(self.union_mode)
+		self.btn_minkowski.clicked.connect(self.minkowski_mode)
+
+		self.btn_trim.clicked.connect(self.trim_enqueue)
+		self.btn_rotate.clicked.connect(self.rotate_enqueue)
+		self.btn_rotate_sp.clicked.connect(self.rotate_sp_enqueue)
+
+		# Graphs
+		self.btn_load.clicked.connect(self.load_button)
+
 		self.btn_H.clicked.connect(lambda ignore, graph='H' : self.binary_router(graph))
 		self.btn_J.clicked.connect(lambda ignore, graph='J' : self.binary_router(graph))
 		self.btn_K.clicked.connect(lambda ignore, graph='K' : self.binary_router(graph))
@@ -316,31 +614,73 @@ class GraphCalculatorDialog(QDialog, Ui_Graph_Calculator):
 		self.btn_moser.clicked.connect(lambda ignore, graph="Moser" : self.binary_router(graph))
 		self.btn_pentagon.clicked.connect(lambda ignore, graph='C5' :self.binary_router(graph))
 		self.btn_pentagram.clicked.connect(lambda ignore, graph='Pentagram' : self.binary_router(graph))
-		self.btn_petersen.clicked.connect(lambda ignore, graph='PG' : self.binary_router(graph))
+		self.btn_petersen.clicked.connect(lambda ignore, graph='PG' : self.binary_router(graph))		
 
-	def show_graphs(self):	
-		self.graphs.setEnabled(True)
 
-	def hide_graphs(self):
-		self.graphs.setEnabled(False)
+	def toggle_memMode(self, state):
+		if state:
+			self.lb_mem.show()
+			self.btn_merge.show()
+		else:
+			self.lb_mem.hide()
+			self.btn_merge.hide()		
+
+	def update(self):
+		self.set_names()
+
+		# Show or hide merge button and stored formula.
+		self.toggle_memMode(self.memMode)
+
+		# Enable or disable undo buttons
+		undoBool = bool(self.todo or self.mainTodo)
+		okBool = bool(self.todo and not self.memMode)
+		self.btn_undo.setEnabled(undoBool)
+		self.btn_ok.setEnabled(okBool)
+
+		# Enable operators
+		operatorsBool = not bool(self.memMode and not self.todo)
+		self.grid_operators.setEnabled(operatorsBool)
+
+		# Enable graph buttons
+		graphsBool = self.binary == 1 or self.binary == 0 or (self.memMode and not self.todo)
+		self.graphs.setEnabled(graphsBool)
+		self.btn_load.setEnabled(graphsBool)
+		self.btn_merge.setEnabled(bool(self.todo))
+		self.btn_mem.setEnabled(graphsBool and self.binary is not None)
+
 
 	def set_names(self):
 		folder = os.path.join('GUI', 'texLabels')	
-		fontsize = 12
 		
-		formula, name = "G = {}".format(self.Gformula), self.Gname			
+		# The beginning of the formula
+		graph = "G"
+		if self.memMode:
+			graph = "M"
 
+		# MAIN FOCUS
+		fontsize = 12	
+		formula, name = "{} = {}".format(graph, self.Gformula), self.Gname
+		
 		if len(name) > 5:
 			fontsize = 8
-		
+
 		img = tex2png(formula, name, fontsize)
 		lb_pixmap = QPixmap(img)
 		self.lb_calc.setPixmap(lb_pixmap)
 
-		if not self.todo:
-			self.btn_ok.setEnabled(False)
-		else:
-			self.btn_ok.setEnabled(True)
+		# SECONDARY FOCUS
+		if self.memMode:
+			self.lb_mem.show()
+			memFormula, memName = "G = {}".format(self.mainTodo[-1][1][1]), self.mainTodo[-1][1][0]
+			
+			memFontsize = 10
+			if len(memName) > 5:
+				memFontsize = 6
+			
+			img = tex2png(memFormula, memName, memFontsize)
+			
+			lb_pixmap = QPixmap(img)
+			self.lb_mem.setPixmap(lb_pixmap)
 
 	def findGraph(self, graph):
 		graphs = ['H', 'J', 'K', 'L', 'T', 'U', 'V', 'W', 'M', "Moser", 
@@ -352,6 +692,33 @@ class GraphCalculatorDialog(QDialog, Ui_Graph_Calculator):
 		for i in range(len(graphs)):
 			if graph == graphs[i]:
 				return graphs_fun[i]()
+
+	def load_graph(self):
+		options = QFileDialog.Options()
+		options |= QFileDialog.DontUseNativeDialog
+		file, _ = QFileDialog.getOpenFileName(self,"Load Graph", "","Edge files (*.e);;All Files (*)", options=options)
+			
+		if file:
+			filesCorrect = file[-2:] == '.e'
+
+			if not filesCorrect:
+				raise Exception('Invalid File')				
+			else:				
+				filename = os.path.basename(file)[:-2]
+				self.update()
+
+				return file, filename
+		else:
+			return None, None
+
+
+
+
+
+
+
+
+
 
 
 # *********************************************
