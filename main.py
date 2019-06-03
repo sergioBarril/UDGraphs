@@ -111,28 +111,28 @@ class GraphCalculatorDialog(QDialog, Ui_Graph_Calculator):
 		super(GraphCalculatorDialog, self).__init__(parent)
 		self.setupUi(self)
 
-
+		# Original graph
 		self.G = parent.G
 		self.Gname = parent.Gname
 		self.Gformula = parent.Gformula
 
 
+		# Mode choosing
 		self.isLoading = False
-
 		self.binary = None
 		self.memMode = False
 
 
-		self.mainTodo = None
+		# Deques
+		self.todo = collections.deque() # Focused deque
+		self.mainTodo = None # Master branch of the deque
+		self.memTodo = collections.deque() # Each memory save will be a new deque in this deque
 
-		self.todo = collections.deque()
-		self.memTodo = collections.deque() # Each memory save will be a new deque.
-
+		# Dictionary that maps every function to a code.
 		self.todo_dict = {0: self.union, 1: self.minkowski, 2: self.trim,
 			3: self.rotate, 4: self.rotate, 6: self.new_graph}
-		
+				
 		self.graph_built = False
-
 
 		self.btn_merge.hide()
 		self.lb_mem.hide()
@@ -356,7 +356,7 @@ class GraphCalculatorDialog(QDialog, Ui_Graph_Calculator):
 		
 		# Add the \oplus to the formula and the name
 		added_formula = ' \\oplus '
-		added_name = '+ {}'
+		added_name = '+'
 
 		if graph is not None:
 			added_formula += graph
@@ -748,6 +748,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 		self.btn_clear.clicked.connect(self.clear)		
 
 		self.btn_M_property.clicked.connect(self.check_M_property)
+		self.btn_cnf_trim.clicked.connect(self.cnf_trim)
 
 	# **************** UTILITIES *****************
 
@@ -766,12 +767,15 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 			self.G_options.hide()
 			self.btn_clear.hide()
 			self.btn_operators.hide()
+
+			self.btn_cnf_trim.hide()
 		else:
 			if self.Gname == 'M':
 				self.btn_M_property.show()
 			self.G_options.show()
 			self.btn_clear.show()
 			self.btn_operators.show()
+			self.btn_cnf_trim.show()
 			self.btn_graph.setText('Create new graph G')
 
 	def set_names(self):
@@ -892,7 +896,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
 			if self.cnf.isChecked():
 				maxColors = self.maxColors.value()
-				self.G.save_cnf(self.Gname, maxColors)
+				self.G.save_cnf(self.Gname, maxColors, random = True)
 		except Exception as e:
 			printed = False
 			print(e)
@@ -937,6 +941,48 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 			msg.setText("M has been 4-colored, although it shouldn't have")
 			msg.setText("Something must be wrong")			
 		msg.exec()
+
+	def cnf_trim(self):
+		options = QFileDialog.Options()
+		options |= QFileDialog.DontUseNativeDialog
+		files, _ = QFileDialog.getOpenFileNames(self,"Load CNF formula and dictionary", "","(*.cnf *.dict);;All Files (*)", options=options)
+			
+		if files:
+			if len(files) == 2:
+				cnf1 = files[0][-4:] == '.cnf' and files[1][-5:] == '.dict'
+				cnf2 = files[1][-4:] == '.cnf' and files[0][-5:] == '.dict'
+				filesCorrect = cnf1 or cnf2
+			else:
+				filesCorrect = False
+
+			if not filesCorrect:
+				msg = QMessageBox()
+				msg.setIcon(QMessageBox.Warning)
+				msg.setText('Invalid Files')
+				msg.setInformativeText('Please choose a .cnf file AND a .dict file.')
+				msg.setWindowTitle("CNF loading failed")
+				msg.setWindowIcon(QIcon(os.path.join('GUI', 'appicon.ico')))
+				msg.setStandardButtons(QMessageBox.Ok)
+				msg.exec()
+			else:
+				try:
+					cnfFile = os.path.basename(files[0])
+					dictFile = os.path.basename(files[1])
+
+					if cnf2:
+						cnfFile, dictFile = dictFile, cnfFile
+
+					self.G.cnf_trimming(cnfFile, dictFile)
+
+					self.Gformula = 'T({})'.format(self.Gformula)
+					self.Gname = 'T({})'.format(self.Gname)
+
+					self.set_names()
+					self.update()
+				except Exception as e:
+					print(str(e))
+
+
 
 
 

@@ -85,7 +85,7 @@ class TikzDocument():
 		"""
 		Adds all the colors to the vertices
 		"""
-		col_dict = {0: 'yellow!15', 1: 'yellow!30', 2:'red!30', 3:'blue!30', 4:'green!30', 5:'cyan!30', 6:'orange!30'}
+		col_dict = {0: 'yellow!15', 1: 'yellow!30', 2:'red!30', 3:'blue!30', 4:'green!30', 5:'orange!45', 6:'cyan!30'}
 
 		nodes = [""]*(colors + 1)
 
@@ -113,7 +113,7 @@ class TikzDocument():
 		else:
 			command = "lualatex "
 
-		command += '--shell-escape -output-directory tikz -aux-directory {} '.format(auxFiles) + self.fname
+		command += "--shell-escape -output-directory tikz -aux-directory {} {}".format(auxFiles, self.fname)
 
 		print(command)
 		os.system(command)

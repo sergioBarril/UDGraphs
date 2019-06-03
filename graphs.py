@@ -487,9 +487,9 @@ class UnitDistanceGraph:
 			for v, v_id in id_nodes_dict.items():
 				f.write("{} {} {}\n".format(v_id, v.x, v.y))
 
-	def save_cnf(self, fname, colors = 4):
+	def save_cnf(self, fname, colors = 4, random = False):
 		sat = UDGSat(self, colors)
-		sat.save_cnf(fname)
+		sat.save_cnf(fname, randomMode = random)
 
 	def load_vertices(self, fname):
 		"""
@@ -522,6 +522,60 @@ class UnitDistanceGraph:
 		self.__init__()
 		self.load_edges(fname)
 		self.update()
+
+
+	def cnf_trimming(self, cnfFile, dictFile):
+		"""
+		Given a filename, this loads the graph with the fname in 'cnf/'
+		"""
+		vtoid = dict()
+		idtov = dict()
+		
+		with open(os.path.join('cnf', dictFile), 'r') as f:
+			for line in f:
+				currLine = line.split()
+				currLine = [int(currLine[0]), float(currLine[1]), float(currLine[2])]
+
+				idtov[currLine[0]] = Vertex(currLine[1], currLine[2])
+				vtoid[Vertex(currLine[1], currLine[2])] = currLine[0]
+
+		n = len(vtoid)
+
+		if n != self.n:
+			raise Exception('Wrong file')
+		
+		vertices = [False] * n
+		vertices = [None] + vertices
+
+		with open(os.path.join('cnf', cnfFile), 'r') as f:
+			for line in f:
+				if line[0] == 'c':
+					continue
+				elif line[0] == 'p':
+					maxColors = int(line.split()[2])//n
+				else:					
+					clause = line.split()[:-1]
+					clause = [int(literal) for literal in clause]
+
+					if len(clause) == 1:
+						literal = int(fabs(clause[0] % n))
+						vertices[literal] = True
+
+					elif len(clause) == maxColors:
+						literal = clause[0] % n
+						if literal == 0:
+							literal = n
+						vertices[literal] = True
+
+		for v in list(self.graph.nodes):
+			if not vertices[vtoid[v]]:
+				print("REMOVING VERTEX")
+				self.remove_node(v)
+
+		self.update()
+
+
+
 
 	def draw_graph(self, fname, hard=False):
 		"""
@@ -888,12 +942,13 @@ class G(UnitDistanceGraph):
 		Y.remove_node(Vertex(-1/3, 0))
 		
 		Ya = Y.rotate(16, 0.5, center = Vertex(-2,0))
-		Ya = Ya.rotate(math.pi/2, center = Vertex(-2,0))
+		# Ya = Ya.rotate(math.pi/2, center = Vertex(-2,0))
 
 		Yb = Y.rotate(16, -0.5, center = Vertex(-2, 0))
-		Yb = Yb.rotate(math.pi/2, center = Vertex(-2, 0))
-
+		# Yb = Yb.rotate(math.pi/2, center = Vertex(-2, 0))		
+		
 		self.graph = Ya.union(Yb).graph
+		
 		self.update()
 
 	def fill_nodes(self, UDGraph):

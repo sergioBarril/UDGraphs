@@ -128,6 +128,9 @@ class Ui_MainWindow(object):
         self.btn_clear = QtWidgets.QPushButton(self.centralwidget)
         self.btn_clear.setGeometry(QtCore.QRect(490, 280, 120, 50))
         self.btn_clear.setObjectName("btn_clear")
+        self.btn_cnf_trim = QtWidgets.QPushButton(self.centralwidget)
+        self.btn_cnf_trim.setGeometry(QtCore.QRect(490, 400, 120, 50))
+        self.btn_cnf_trim.setObjectName("btn_cnf_trim")
         MainWindow.setCentralWidget(self.centralwidget)
 
         self.retranslateUi(MainWindow)
@@ -153,6 +156,7 @@ class Ui_MainWindow(object):
         self.lb_n.setText(_translate("MainWindow", "n = 0"))
         self.btn_M_property.setText(_translate("MainWindow", "Check property on M"))
         self.btn_clear.setText(_translate("MainWindow", "Clear graph"))
+        self.btn_cnf_trim.setText(_translate("MainWindow", "CNF Trimming"))
 
 
 if __name__ == "__main__":

@@ -300,6 +300,19 @@
      <string>Clear graph</string>
     </property>
    </widget>
+   <widget class="QPushButton" name="btn_cnf_trim">
+    <property name="geometry">
+     <rect>
+      <x>490</x>
+      <y>400</y>
+      <width>120</width>
+      <height>50</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string>CNF Trimming</string>
+    </property>
+   </widget>
   </widget>
  </widget>
  <resources/>

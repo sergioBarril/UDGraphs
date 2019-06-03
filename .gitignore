@@ -10,3 +10,6 @@ texLabels/
 *.v
 *.col
 *.dict
+*.cnf
+*.drat
+heule/

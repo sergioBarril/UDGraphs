@@ -1,4 +1,5 @@
 import pycosat
+import random
 
 from graphs import *
 
@@ -10,16 +11,31 @@ class UDGSat():
 		self.k = colors
 		self.cnf = []
 
-		self.triangle_clause()
+		self.only_central_clause()
+		# self.triangle_clause()
 		self.hasColor_clause()		
 		self.edgeColor_clause()
 
 	
-	def save_cnf(self, fname):
+	def only_central_clause(self):
+		v0 = self.UDG.search_vertex(Vertex(0,0))		
+		self.cnf.append([self.toId[v0]])
+
+		for color in range(1, self.k):
+			self.cnf.append([-(self.toId[v0] + color * self.UDG.n)])
+
+		for v in self.UDG.sorted_nodes:
+			if v != Vertex(0,0):
+				self.cnf.append([-(self.toId[v])])
+	
+	def save_cnf(self, fname, randomMode = False):
 		with open(os.path.join('cnf', fname + '.cnf'), 'w') as f:
 			f.write('c FILE: {}\n'.format(fname + '.cnf'))
 			f.write('c\n')
 			f.write('p cnf {} {}\n'.format(self.UDG.n * self.k, len(self.cnf)))
+
+			if randomMode:
+				random.shuffle(self.cnf)
 
 			for clause in self.cnf:
 				for literal in clause:
@@ -32,6 +48,7 @@ class UDGSat():
 
 	def solve(self, color = False):
 		print("Solving...")
+		random.shuffle(self.cnf)
 		solution = pycosat.solve(self.cnf)
 
 		if solution == 'UNKNOWN':			

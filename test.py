@@ -26,6 +26,14 @@ class TestColoring():
 				z = G.search_vertex(w)
 				assert z.isColored()
 				assert z.color != v.color
+
+	def test_610(self):
+		G = UnitDistanceGraph()
+		G.load_graph('610')
+		G.sat_color(colors = 5)		
+		self.check_coloring(G)
+
+
 	def test_H(self):
 		G = H()
 		G.update_and_sort()
