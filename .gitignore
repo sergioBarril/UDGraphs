@@ -13,3 +13,4 @@ texLabels/
 *.cnf
 *.drat
 heule/
+env/

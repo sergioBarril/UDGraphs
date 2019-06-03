@@ -28,7 +28,7 @@ def tex2png(formula, fname, fontsize=12, dpi=300):
 	fig.text(0, 0, r'${}$'.format(formula), fontsize=fontsize)
 
 	fig.savefig(file, dpi=dpi, transparent=True, format='png',
-		bbox_inches='tight', pad_inches=0.0, frameon=False)
+		bbox_inches='tight', pad_inches=0.0)
 
 	plt.close(fig)
 	return file
