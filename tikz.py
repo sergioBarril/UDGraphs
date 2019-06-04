@@ -1,6 +1,7 @@
 import os
 import math
 import subprocess
+import platform
 
 
 class TikzDocument():
@@ -108,16 +109,29 @@ class TikzDocument():
 		texFiles = os.path.join('tikz', 'texFiles')
 		auxFiles = os.path.join(texFiles, 'auxFiles')
 
+		pdfFile = self.pdfname
+
+		runningOS = platform.system()
+
+		# Linux and Windows compatibility
+		if not (runningOS == 'Windows' or runningOS == 'Linux'):
+			raise Exception('Not available for MacOS')
+
+		if runningOS == 'Windows':
+			auxFiles = '--aux-directory {}'.format(auxFiles)			
+		else:
+			auxFiles = ''
+			pdfFile = 'evince {}'.format(pdfFile)
+		
 		if not hard:
-			command = "pdflatex -halt-on-error "
+			command = "pdflatex --halt-on-error "
 		else:
 			command = "lualatex "
 
-		command += "--shell-escape -output-directory tikz -aux-directory {} {}".format(auxFiles, self.fname)
-
-		print(command)
+		command += "--shell-escape --output-directory tikz {} {}".format(auxFiles, self.fname)
+		
 		os.system(command)
-		self.p = subprocess.Popen([self.pdfname],shell=True)
+		self.p = subprocess.Popen([pdfFile],shell=True)
 
 	def draw(self, hard=False):
 		"""

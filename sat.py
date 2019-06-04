@@ -11,8 +11,8 @@ class UDGSat():
 		self.k = colors
 		self.cnf = []
 
-		self.only_central_clause()
-		# self.triangle_clause()
+		# self.only_central_clause()
+		self.triangle_clause()
 		self.hasColor_clause()		
 		self.edgeColor_clause()
 

@@ -2,6 +2,10 @@ import networkx as nx
 import collections
 
 class ColoringGraph():
+	"""
+	Implements the coloring algorithm described
+	in de Grey's proofs
+	"""
 	def __init__(self, UDGraph, colors = 4, new = True, verbose=False):
 		self.graph = nx.Graph()
 		self.vtoid = dict()
