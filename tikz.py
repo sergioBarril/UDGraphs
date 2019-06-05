@@ -26,6 +26,9 @@ class TikzDocument():
 		self.G = UDGraph.graph
 		self.factor = factor
 
+		self.vtoid = dict()
+		self.idtov = dict()
+
 	def open_new(self):
 		"""
 		Starts writing the preamble on the .tex file
@@ -68,7 +71,10 @@ class TikzDocument():
 			i = 0
 			for v in self.G.nodes:
 				f.write('\t\\Vertex[x={}, y={}]{{{}}}\n'.format(round(self.factor*v.x, 3), round(self.factor*v.y, 3), i))
-				v.id = i
+				
+				self.vtoid[v] = i
+				self.idtov[i] = v
+				
 				i += 1
 
 	def add_edges(self):
@@ -80,7 +86,7 @@ class TikzDocument():
 			for v in self.G.nodes:			
 				for w in self.G.nodes:
 					if (v, w) in self.G.edges:
-						f.write('\t\\Edge({})({})\n'.format(v.id, w.id))
+						f.write('\t\\Edge({})({})\n'.format(self.vtoid[v], self.vtoid[w]))
 
 	def add_colors(self, colors = 6):
 		"""
@@ -97,7 +103,7 @@ class TikzDocument():
 				if v.color == -1:
 					color += 1				
 				
-				nodes[color] += str(v.id) + ', '
+				nodes[color] += str(self.vtoid[v]) + ', '
 
 			for i in range(colors + 1):
 				if nodes[i]:

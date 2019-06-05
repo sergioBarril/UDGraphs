@@ -8,11 +8,7 @@ class Vertex:
 		self.y = y
 		self.r = self.getR()
 
-		self.id = None
-
 		self.color = -1
-		self.uncolorable_nodes = []
-		self.banned_colors = []
 
 	def __str__(self):
 		""" (x, y)[color] """
