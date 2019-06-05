@@ -6,6 +6,7 @@ __pycache__/
 *.tex
 *.pyc
 *.col
+texLabels/
 *.dict
 *.cnf
 *.drat
