@@ -4,11 +4,10 @@ __pycache__/
 *.log
 *.pdf
 *.tex
-texLabels/
 *.pyc
-.col
-.dict
-.cnf
+*.col
+*.dict
+*.cnf
 *.drat
 env/
 *.synctex.gz
