@@ -14,7 +14,6 @@ from tikz import TikzDocument
 
 
 abs_tol = 0.02
-rel_tol = 1.e-4
 
 class UnitDistanceGraph:
 	"""Graph with edges of distance 1"""
