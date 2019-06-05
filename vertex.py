@@ -1,9 +1,6 @@
 import math
 from math import isclose, sqrt, sin, cos, acos, asin, fabs, pi
 
-abs_tol = 0.02
-rel_tol = 1.e-4
-
 class Vertex:
 	"""Vertex of the graph. Contains coordinates and color"""
 	def __init__(self, x, y):
@@ -119,14 +116,3 @@ class Vertex:
 		y2 = self.y * self.y
 
 		return sqrt(x2 + y2)
-
-	def true_eq(self, other):
-		"""
-		Checks if this vertex is close enough to another one to be considered the same.
-		I'll probably change all of this, it's probably unnecessary
-		"""
-		caseA = isclose(self.x, other.x, rel_tol= rel_tol, abs_tol= 5*abs_tol) and isclose(self.y, other.y, rel_tol= rel_tol, abs_tol=abs_tol)
-		caseB = isclose(self.x, other.x, rel_tol= rel_tol, abs_tol= abs_tol) and isclose(self.y, other.y, rel_tol= rel_tol, abs_tol=5*abs_tol)
-
-		same = self.x - other.x == 0 and self.y - other.y == 0
-		return caseA or caseB or same

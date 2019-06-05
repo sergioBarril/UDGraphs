@@ -198,15 +198,15 @@ class UnitDistanceGraph:
 		# Add edges on them
 		for x in list(new_nodes):
 			for v in self.graph.nodes:
-				if v.isUnitDist(x) and not v.true_eq(x):
+				if v.isUnitDist(x):
 					M.add_edge(v, x)
 
 			for w in G.graph.nodes:
-				if w.isUnitDist(x) and not w.true_eq(x):
+				if w.isUnitDist(x):
 					M.add_edge(w, x)
 
 			for z in new_nodes:
-				if z.isUnitDist(x) and not z.true_eq(x):
+				if z.isUnitDist(x):
 					M.add_edge(x, z)
 
 			new_nodes.remove(x)
@@ -230,15 +230,15 @@ class UnitDistanceGraph:
 		# Add edges on them
 		for x in list(new_nodes):
 			for v in self.graph.nodes:
-				if v.isUnitDist(x) and not v.true_eq(x):
+				if v.isUnitDist(x):
 					M.add_edge(v, x)
 
 			for w in G.graph.nodes:
-				if w.isUnitDist(x) and not w.true_eq(x):
+				if w.isUnitDist(x):
 					M.add_edge(w, x)
 
 			for z in new_nodes:
-				if z.isUnitDist(x) and not z.true_eq(x):
+				if z.isUnitDist(x):
 					M.add_edge(x, z)
 
 			new_nodes.remove(x)
