@@ -18,7 +18,7 @@
     <rect>
      <x>20</x>
      <y>20</y>
-     <width>331</width>
+     <width>401</width>
      <height>41</height>
     </rect>
    </property>
@@ -41,7 +41,7 @@
      <height>261</height>
     </rect>
    </property>
-   <layout class="QGridLayout" name="gridLayout">
+   <layout class="QGridLayout" name="gridGrey">
     <item row="1" column="0">
      <widget class="QPushButton" name="btn_T">
       <property name="text">
@@ -109,7 +109,7 @@
      <height>261</height>
     </rect>
    </property>
-   <layout class="QVBoxLayout" name="verticalLayout">
+   <layout class="QVBoxLayout" name="gridGrey2">
     <item>
      <widget class="QPushButton" name="btn_M">
       <property name="text">
@@ -143,19 +143,19 @@
     </font>
    </property>
    <property name="text">
-    <string>De Grey's basic graphs:</string>
+    <string>De Grey's graphs:</string>
    </property>
   </widget>
   <widget class="QWidget" name="gridLayoutWidget_2">
    <property name="geometry">
     <rect>
-     <x>10</x>
-     <y>440</y>
+     <x>480</x>
+     <y>460</y>
      <width>421</width>
      <height>81</height>
     </rect>
    </property>
-   <layout class="QGridLayout" name="gridLayout_2">
+   <layout class="QGridLayout" name="gridAdditional">
     <item row="0" column="2">
      <widget class="QPushButton" name="btn_pentagram">
       <property name="text">
@@ -189,8 +189,8 @@
   <widget class="QLabel" name="lb_additional">
    <property name="geometry">
     <rect>
-     <x>20</x>
-     <y>390</y>
+     <x>490</x>
+     <y>410</y>
      <width>331</width>
      <height>41</height>
     </rect>
@@ -204,6 +204,79 @@
    </property>
    <property name="text">
     <string>Additional graphs:</string>
+   </property>
+  </widget>
+  <widget class="QWidget" name="gridLayoutWidget_3">
+   <property name="geometry">
+    <rect>
+     <x>10</x>
+     <y>450</y>
+     <width>421</width>
+     <height>121</height>
+    </rect>
+   </property>
+   <layout class="QGridLayout" name="gridHeule">
+    <item row="0" column="2">
+     <widget class="QPushButton" name="btn_S199">
+      <property name="text">
+       <string>S199</string>
+      </property>
+     </widget>
+    </item>
+    <item row="0" column="1">
+     <widget class="QPushButton" name="btn_V1939">
+      <property name="text">
+       <string>V1939</string>
+      </property>
+     </widget>
+    </item>
+    <item row="0" column="3">
+     <widget class="QPushButton" name="btn_G610">
+      <property name="text">
+       <string>G610</string>
+      </property>
+     </widget>
+    </item>
+    <item row="0" column="0">
+     <widget class="QPushButton" name="btn_V151">
+      <property name="font">
+       <font>
+        <weight>50</weight>
+        <bold>false</bold>
+       </font>
+      </property>
+      <property name="text">
+       <string>V151</string>
+      </property>
+     </widget>
+    </item>
+    <item row="1" column="0">
+     <widget class="QPushButton" name="btn_G553">
+      <property name="text">
+       <string>G553</string>
+      </property>
+     </widget>
+    </item>
+   </layout>
+  </widget>
+  <widget class="QLabel" name="lb_heule">
+   <property name="geometry">
+    <rect>
+     <x>20</x>
+     <y>400</y>
+     <width>331</width>
+     <height>41</height>
+    </rect>
+   </property>
+   <property name="font">
+    <font>
+     <family>Euphemia</family>
+     <pointsize>14</pointsize>
+     <underline>true</underline>
+    </font>
+   </property>
+   <property name="text">
+    <string>Heule's graphs:</string>
    </property>
   </widget>
  </widget>

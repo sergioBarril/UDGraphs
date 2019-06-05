@@ -907,9 +907,6 @@ class PetersenGraph(UnitDistanceGraph):
 		self.graph = PG.graph
 		self.update()
 
-
-
-
 class SA(UnitDistanceGraph):
 	def __init__(self, S):
 		UnitDistanceGraph.__init__(self)
@@ -1005,3 +1002,29 @@ class G(UnitDistanceGraph):
 
 		UDGraph.add_node(Vertex((13 - sqrt(33))/12, (3*sqrt(3) - sqrt(11))/12))
 		UDGraph.add_node(Vertex((11 - sqrt(33))/12, (sqrt(11) - sqrt(3))/12))
+
+
+class V151(UnitDistanceGraph):
+	def __init__(self):
+		UnitDistanceGraph.__init__(self)
+
+		V1 = V()
+		V2 = V()
+
+		final_graph = V1.minkowskiSum(V2)
+		final_graph = final_graph.trim(1)
+
+		self.graph = final_graph.graph
+		self.update()
+
+class V1939(UnitDistanceGraph):
+	def __init__(self):
+		UnitDistanceGraph.__init__(self)
+
+		V_31 = V()
+		V_151 = V151()
+
+		final_graph = V_31.minkowskiSum(V_151)
+
+		self.graph = final_graph.graph
+		self.update()

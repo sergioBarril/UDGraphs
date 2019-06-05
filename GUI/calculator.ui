@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>1057</width>
-    <height>690</height>
+    <width>1062</width>
+    <height>691</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -53,15 +53,18 @@
     <rect>
      <x>40</x>
      <y>270</y>
-     <width>224</width>
+     <width>261</width>
      <height>251</height>
     </rect>
    </property>
    <layout class="QGridLayout" name="gridLayout">
     <item row="4" column="1">
      <widget class="QSpinBox" name="rotate_i">
+      <property name="minimum">
+       <number>1</number>
+      </property>
       <property name="value">
-       <number>3</number>
+       <number>4</number>
       </property>
      </widget>
     </item>
@@ -89,7 +92,7 @@
     <item row="4" column="0">
      <widget class="QPushButton" name="btn_rotate_sp">
       <property name="text">
-       <string>Special Rotate</string>
+       <string>θ</string>
       </property>
      </widget>
     </item>
@@ -141,8 +144,8 @@
   <widget class="QPushButton" name="btn_undo">
    <property name="geometry">
     <rect>
-     <x>660</x>
-     <y>630</y>
+     <x>420</x>
+     <y>600</y>
      <width>121</width>
      <height>41</height>
     </rect>
@@ -154,9 +157,9 @@
   <widget class="QFrame" name="graphs">
    <property name="geometry">
     <rect>
-     <x>500</x>
+     <x>390</x>
      <y>260</y>
-     <width>531</width>
+     <width>641</width>
      <height>271</height>
     </rect>
    </property>
@@ -164,24 +167,44 @@
     <enum>QFrame::NoFrame</enum>
    </property>
    <layout class="QGridLayout" name="gridLayout_2">
-    <item row="1" column="1">
-     <widget class="QPushButton" name="btn_U">
+    <item row="3" column="0">
+     <widget class="QPushButton" name="btn_V151">
+      <property name="font">
+       <font>
+        <weight>50</weight>
+        <bold>false</bold>
+       </font>
+      </property>
       <property name="text">
-       <string>U</string>
+       <string>V151</string>
       </property>
      </widget>
     </item>
-    <item row="1" column="2">
-     <widget class="QPushButton" name="btn_V">
+    <item row="3" column="1">
+     <widget class="QPushButton" name="btn_V1939">
       <property name="text">
-       <string>V</string>
+       <string>V1939</string>
       </property>
      </widget>
     </item>
-    <item row="1" column="3">
-     <widget class="QPushButton" name="btn_W">
+    <item row="3" column="2">
+     <widget class="QPushButton" name="btn_S199">
       <property name="text">
-       <string>W</string>
+       <string>S199</string>
+      </property>
+     </widget>
+    </item>
+    <item row="3" column="3">
+     <widget class="QPushButton" name="btn_G610">
+      <property name="text">
+       <string>G610</string>
+      </property>
+     </widget>
+    </item>
+    <item row="4" column="1">
+     <widget class="QPushButton" name="btn_pentagon">
+      <property name="text">
+       <string>Pentagon</string>
       </property>
      </widget>
     </item>
@@ -192,6 +215,20 @@
       </property>
      </widget>
     </item>
+    <item row="4" column="2">
+     <widget class="QPushButton" name="btn_pentagram">
+      <property name="text">
+       <string>Pentagram</string>
+      </property>
+     </widget>
+    </item>
+    <item row="4" column="3">
+     <widget class="QPushButton" name="btn_petersen">
+      <property name="text">
+       <string>Petersen Graph</string>
+      </property>
+     </widget>
+    </item>
     <item row="0" column="0">
      <widget class="QPushButton" name="btn_H">
       <property name="text">
@@ -199,17 +236,10 @@
       </property>
      </widget>
     </item>
-    <item row="0" column="3">
-     <widget class="QPushButton" name="btn_L">
+    <item row="4" column="0">
+     <widget class="QPushButton" name="btn_moser">
       <property name="text">
-       <string>L</string>
-      </property>
-     </widget>
-    </item>
-    <item row="1" column="0">
-     <widget class="QPushButton" name="btn_T">
-      <property name="text">
-       <string>T</string>
+       <string>Moser's Spindle</string>
       </property>
      </widget>
     </item>
@@ -220,38 +250,59 @@
       </property>
      </widget>
     </item>
-    <item row="2" column="0">
+    <item row="0" column="3">
+     <widget class="QPushButton" name="btn_L">
+      <property name="text">
+       <string>L</string>
+      </property>
+     </widget>
+    </item>
+    <item row="3" column="4">
+     <widget class="QPushButton" name="btn_G553">
+      <property name="text">
+       <string>G553</string>
+      </property>
+     </widget>
+    </item>
+    <item row="0" column="4">
+     <widget class="QPushButton" name="btn_T">
+      <property name="text">
+       <string>T</string>
+      </property>
+     </widget>
+    </item>
+    <item row="1" column="0">
+     <widget class="QPushButton" name="btn_U">
+      <property name="text">
+       <string>U</string>
+      </property>
+     </widget>
+    </item>
+    <item row="1" column="1">
+     <widget class="QPushButton" name="btn_V">
+      <property name="text">
+       <string>V</string>
+      </property>
+     </widget>
+    </item>
+    <item row="1" column="2">
+     <widget class="QPushButton" name="btn_W">
+      <property name="text">
+       <string>W</string>
+      </property>
+     </widget>
+    </item>
+    <item row="1" column="3">
      <widget class="QPushButton" name="btn_M">
       <property name="text">
        <string>M</string>
       </property>
      </widget>
     </item>
-    <item row="3" column="0">
-     <widget class="QPushButton" name="btn_moser">
+    <item row="1" column="4">
+     <widget class="QPushButton" name="btn_G">
       <property name="text">
-       <string>Moser's Spindle</string>
-      </property>
-     </widget>
-    </item>
-    <item row="3" column="1">
-     <widget class="QPushButton" name="btn_pentagon">
-      <property name="text">
-       <string>Pentagon</string>
-      </property>
-     </widget>
-    </item>
-    <item row="3" column="2">
-     <widget class="QPushButton" name="btn_pentagram">
-      <property name="text">
-       <string>Pentagram</string>
-      </property>
-     </widget>
-    </item>
-    <item row="3" column="3">
-     <widget class="QPushButton" name="btn_petersen">
-      <property name="text">
-       <string>Petersen Graph</string>
+       <string>G</string>
       </property>
      </widget>
     </item>
@@ -261,7 +312,7 @@
    <property name="geometry">
     <rect>
      <x>870</x>
-     <y>620</y>
+     <y>610</y>
      <width>161</width>
      <height>51</height>
     </rect>
@@ -302,8 +353,8 @@
   <widget class="QPushButton" name="btn_mem">
    <property name="geometry">
     <rect>
-     <x>530</x>
-     <y>630</y>
+     <x>290</x>
+     <y>600</y>
      <width>121</width>
      <height>41</height>
     </rect>
@@ -315,7 +366,7 @@
   <widget class="QPushButton" name="btn_load">
    <property name="geometry">
     <rect>
-     <x>690</x>
+     <x>620</x>
      <y>550</y>
      <width>171</width>
      <height>41</height>
@@ -328,8 +379,8 @@
   <widget class="QPushButton" name="btn_merge">
    <property name="geometry">
     <rect>
-     <x>530</x>
-     <y>630</y>
+     <x>290</x>
+     <y>600</y>
      <width>121</width>
      <height>41</height>
     </rect>

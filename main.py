@@ -57,17 +57,46 @@ class GraphsDialog(QDialog, Ui_GraphsDialog):
 		self.btn_V.clicked.connect(lambda ignore, graph='V' : self.setGraph(graph))
 		self.btn_W.clicked.connect(lambda ignore, graph='W' : self.setGraph(graph))
 		self.btn_G.clicked.connect(lambda ignore, graph='G' : self.setGraph(graph))
+
+
+		self.btn_V151.clicked.connect(lambda ignore, graph=r'V_{151}' : self.setGraph(graph))		
+		self.btn_V1939.clicked.connect(lambda ignore, graph=r'V_{1939}' : self.setGraph(graph))
+
+		gname = r'S_{199}'
+		g = os.path.join('heule', gname)
+		self.btn_S199.clicked.connect(lambda ignore, graph=g, gname = gname : self.setHeuleGraph(graph, gname))
+
+		gname = r'G_{610}'
+		g = os.path.join('heule', gname)
+		self.btn_G610.clicked.connect(lambda ignore, graph=g, gname = gname : self.setHeuleGraph(graph, gname))
+
+		gname = r'G_{553}'
+		g = os.path.join('heule', gname)
+		self.btn_G553.clicked.connect(lambda ignore, graph=g, gname = gname : self.setHeuleGraph(graph, gname))
+
 		self.btn_moser.clicked.connect(lambda ignore, graph="Moser" : self.setGraph(graph))
-		self.btn_pentagon.clicked.connect(lambda ignore, graph='C5' :self.setGraph(graph))
+		self.btn_pentagon.clicked.connect(lambda ignore, graph=r'C_{5}' :self.setGraph(graph))
 		self.btn_pentagram.clicked.connect(lambda ignore, graph='Pentagram' : self.setGraph(graph))
 		self.btn_petersen.clicked.connect(lambda ignore, graph='PG' : self.setGraph(graph))
 		
+
+	def setHeuleGraph(self, graph, gname):
+		G = UnitDistanceGraph()
+		G.load_graph(graph)
+
+		self.G = G
+		self.Gname = gname
+		self.graph_built = True
+		self.close()
+
+
+
 	def setGraph(self, graph):
 		graphs = ['H', 'J', 'K', 'L', 'T', 'U', 'V', 'W', 'M', "Moser", 
-		"C5","PG", "Pentagram", 'G']
+		r"C_{5}","PG", "Pentagram", 'G', r'V_{151}', r'V_{1939}']
 
 		graphs_fun = [H, J, K, L, T, lambda : print('Not implemented'), V, W, M,
-		 MoserSpindle, RegularPentagon, PetersenGraph, FStar, G]
+		 MoserSpindle, RegularPentagon, PetersenGraph, FStar, G, V151, V1939]
 		
 		for i in range(len(graphs)):
 			if graph == graphs[i]:
@@ -280,128 +309,134 @@ class GraphCalculatorDialog(QDialog, Ui_Graph_Calculator):
 
 	# ******************* ENQUEUE **************
 
-	def union_enqueue(self, graph):
+	def get_graph_enqueue(self, graph, gname):
+		"""
+		This function handles graph choosing
+		for enqueueing. It returns a filename
+		and a graph name, where applicable.
+		"""
+
 		# If the graph comes from a file:
 		if graph is None and self.isLoading:
-			try:
-				file, filename = self.load_graph()
-				if filename is not None:
-					graph = filename
-				else:
-					return 1
-			except Exception as e:				
-				msg = QMessageBox()
-				msg.setIcon(QMessageBox.Warning)
-				msg.setText('Invalid Files')
-				msg.setInformativeText('Please choosbe a .e file')
-				msg.setWindowTitle("Graph Loading Failed")
-				msg.setWindowIcon(QIcon(os.path.join('GUI', 'appicon.ico')))
-				msg.setStandardButtons(QMessageBox.Ok)
-				msg.exec()
-				return
-			finally:
-				self.isLoading = False
+			file, filename = self.load_graph()
+			if filename is not None:
+				graph = filename
+
+		# If the graph comes from a Heule Button
+		elif gname is not None:
+			filename, graph = graph, gname
 		else:
 			filename = None
 
-		# If something has been done and it's not a union, put parentheses
-		if self.todo and self.todo[-1][0] == 1:
-			self.Gformula = '({})'.format(self.Gformula)
-			self.Gname = '({})'.format(self.Gname)
-		
-		# Add the \cup to the formula, and the name
-		added_formula = ' \\cup '
-		added_name = 'u'
+		return graph, filename
 
-		if graph is not None:
-			added_formula += graph
-			added_name += graph
+
+	def file_error(self):
+		msg = QMessageBox()
+		msg.setIcon(QMessageBox.Warning)
+		msg.setText('Invalid Files')
+		msg.setInformativeText('Please choose a valid .e file')
+		msg.setWindowTitle("Graph Loading Failed")
+		msg.setWindowIcon(QIcon(os.path.join('GUI', 'appicon.ico')))
+		msg.setStandardButtons(QMessageBox.Ok)
+		msg.exec()
+
+	def binary_enqueue(self, graph, mode, gname = None):
+		try:			
+			graph, filename = self.get_graph_enqueue(graph, gname)
+
+			# If file chooser was cancelled
+			if self.isLoading and graph is None:
+				return
+
+			incompatible = 1 if mode == 0 else 0
+
+			# If something has been done and it's not the same binary
+			# operation, put parentheses
+			if self.todo and self.todo[-1][0] == incompatible:
+				self.Gformula = '({})'.format(self.Gformula)
+				self.Gname = '({})'.format(self.Gname)
 			
-		# Append to the todolist
-		self.todo.append((0, (graph, self.Gformula, filename), added_formula, added_name))
+			# Add the \cup or \oplus to the formula, and the name
+			if mode == 0: # mode == 'UNION':
+				added_formula = ' \\cup '
+				added_name = 'u'
+				code = 0
+			else: # mode == 'MINKOWSKI':
+				added_formula = ' \\oplus '
+				added_name = '+'
+				code = 1
 
-		# Update attributes
-		self.Gformula += added_formula
-		self.Gname += added_name
-		self.update()
+			if graph is not None:
+				added_formula += graph
+				added_name += graph
+			
+			# Append to the todolist.
+			self.todo.append((code, (graph, self.Gformula, filename), added_formula, added_name))
 
-	def minkowski_enqueue(self, graph):
-		# If the graph comes from a file:
-		if graph is None and self.isLoading:
-			try:
-				file, filename = self.load_graph()
-				if filename is not None:
-					graph = filename
-				else:
-					return
-			except Exception as e:				
-				msg = QMessageBox()
-				msg.setIcon(QMessageBox.Warning)
-				msg.setText('Invalid Files')
-				msg.setInformativeText('Please choose a .e file')
-				msg.setWindowTitle("Graph Loading Failed")
-				msg.setWindowIcon(QIcon(os.path.join('GUI', 'appicon.ico')))
-				msg.setStandardButtons(QMessageBox.Ok)
-				msg.exec()
-				return
-			finally:
-				self.isLoading = False
-		else:
-			filename = None
-		
-		# If something has been done and it's not a sum, put parentheses
-		if self.todo and self.todo[-1][0] == 0:
-			self.Gformula = '({})'.format(self.Gformula)
-			self.Gname = '({})'.format(self.Gname)
-		
-		# Add the \oplus to the formula and the name
-		added_formula = ' \\oplus '
-		added_name = '+'
+			# Update attributes
+			self.Gformula += added_formula
+			self.Gname += added_name
+			self.update()
 
-		if graph is not None:
-			added_formula += graph
-			added_name += graph
+		except Exception as e:				
+			self.file_error()
+		finally:
+			self.isLoading = False
 
-		# Append to the todolist
-		self.todo.append((1, (graph, self.Gformula, filename), added_formula, added_name))
-
-		# Update the attributes
-		self.Gformula += added_formula
-		self.Gname += added_name
-		self.update()
+	def input_error(self):
+		msg = QMessageBox()
+		msg.setIcon(QMessageBox.Warning)
+		msg.setText('Invalid Input')
+		msg.setInformativeText("Use only numbers, pi, sqrt(), and basic operations.")
+		msg.setWindowTitle("Invalid Input")
+		msg.setWindowIcon(QIcon(os.path.join('GUI', 'appicon.ico')))
+		msg.setStandardButtons(QMessageBox.Ok)
+		msg.exec()
 
 	def trim_enqueue(self):
-		# Add the trim statement, opening a parentheses
-		self.Gformula = '\\mathrm{{trim}}({}, '.format(self.Gformula)
+		try:
+			# Get input, and translate the sqrts and pis
+			plain_text = self.input_trim_dist.text()
+			formula_ready, eval_ready = self.sanitize_input(plain_text)
 
-		# Get input, and translate the sqrts and pis
-		plain_text = self.input_trim_dist.text()
-		formula_ready, eval_ready = self.sanitize_input(plain_text)
-		
-		# Update formula, closing the parentheses
-		self.Gformula += formula_ready + ')'
-		self.Gname = 'trim({})'.format(self.Gname)
+			value = eval(eval_ready)
 
-		# Append to the todolist and update
-		self.todo.append((2, eval(eval_ready)))
-		self.update()
+			# Add the trim statement, opening a parentheses
+			self.Gformula = '\\mathrm{{trim}}({}, '.format(self.Gformula)
+
+			
+			# Update formula, closing the parentheses
+			self.Gformula += formula_ready + ')'
+			self.Gname = 'trim({})'.format(self.Gname)
+
+			# Append to the todolist and update
+			self.todo.append((2, value))
+			self.update()
+		except Exception as e:
+			self.input_error()
 
 	def rotate_enqueue(self):
-		# Add the rot statement, opening a parentheses
-		self.Gformula = '\\mathrm{{rot}}({}, '.format(self.Gformula)
+		try:
+			# Get input, and translate the sqrts and pis
+			plain_text = self.input_rotate_angle.text()
+			formula_ready, eval_ready = self.sanitize_input(plain_text)
 
-		# Get input, and translate the sqrts and pis
-		plain_text = self.input_rotate_angle.text()
-		formula_ready, eval_ready = self.sanitize_input(plain_text)
+			value = eval(eval_ready)
 
-		# Update formula, closing the parentheses
-		self.Gformula += formula_ready + ')'
-		self.Gname = 'rot({})'.format(self.Gname)
+			# Add the rot statement, opening a parentheses
+			self.Gformula = '\\mathrm{{rot}}({}, '.format(self.Gformula)
 
-		# Append to the todolist and update
-		self.todo.append((3, eval(eval_ready)))
-		self.update()
+			# Update formula, closing the parentheses
+			self.Gformula += formula_ready + ')'
+			self.Gname = 'rot({})'.format(self.Gname)
 
+			# Append to the todolist and update
+			self.todo.append((3, value))
+			self.update()
+		except Exception as e:
+			self.input_error()			
+	
 	def rotate_sp_enqueue(self):
 		# Get the i and k values
 		i = self.rotate_i.value()
@@ -466,35 +501,24 @@ class GraphCalculatorDialog(QDialog, Ui_Graph_Calculator):
 		self.update()
 
 
-	def new_graph_enqueue(self, graph):
-		# If the graph comes from a file:
-		if self.isLoading:
-			try:
-				file, filename = self.load_graph()
-				if filename is not None:
-					self.todo.append((6, (filename, filename, filename)))
-					self.Gformula = filename
-					self.Gname = filename
-				self.update()
-			except Exception as e:				
-				msg = QMessageBox()
-				msg.setIcon(QMessageBox.Warning)
-				msg.setText('Invalid Files')
-				msg.setInformativeText('Please choose a .e file')
-				msg.setWindowTitle("Graph Loading Failed")
-				msg.setWindowIcon(QIcon(os.path.join('GUI', 'appicon.ico')))
-				msg.setStandardButtons(QMessageBox.Ok)
-				msg.exec()
-				return
-			finally: 
-				self.isLoading = False
+	def new_graph_enqueue(self, graph, gname = None):
+		filename = None
+		try:
+			graph, filename = self.get_graph_enqueue(graph, gname)
 
-		# If the graph comes from a graph button:
-		if graph is not None:
+			# Cancelled file choose
+			if self.isLoading and graph is None:
+				return
+
 			self.Gformula = graph
 			self.Gname = graph
-			self.todo.append((6, (graph, graph, None)))
-			self.update()		
+			self.todo.append((6, (graph, graph, filename)))
+			self.update()
+
+		except Exception as e:
+			self.file_error()	
+		finally: 
+			self.isLoading = False
 
 	#************** BINARY OPERATIONS *************
 	# Toggle graph buttons
@@ -529,13 +553,17 @@ class GraphCalculatorDialog(QDialog, Ui_Graph_Calculator):
 			F = self.findGraph(graph[0])
 		return self.G.minkowskiSum(F)
 
-	def binary_router(self, graph):
+	def binary_router(self, graph, gname = None):
+		"""
+		Redirects flow to either binary_enqueue function
+		to get a union or minkowski,
+		or new_graph_enqueue, to get the first graph in
+		memory storage.
+		"""
 		if self.binary is None:
-			self.new_graph_enqueue(graph)
-		elif self.binary == 0:
-			self.union_enqueue(graph)
-		elif self.binary == 1:
-			self.minkowski_enqueue(graph)
+			self.new_graph_enqueue(graph, gname = gname)
+		else:
+			self.binary_enqueue(graph, self.binary, gname = gname)		
 		self.binary = None
 		self.update()
 
@@ -607,10 +635,29 @@ class GraphCalculatorDialog(QDialog, Ui_Graph_Calculator):
 		self.btn_K.clicked.connect(lambda ignore, graph='K' : self.binary_router(graph))
 		self.btn_L.clicked.connect(lambda ignore, graph='L' : self.binary_router(graph))
 		self.btn_M.clicked.connect(lambda ignore, graph='M' : self.binary_router(graph))
+		self.btn_G.clicked.connect(lambda ignore, graph='G' : self.binary_router(graph))
 		self.btn_T.clicked.connect(lambda ignore, graph='T' : self.binary_router(graph))
 		self.btn_U.clicked.connect(lambda ignore, graph='U' : self.binary_router(graph))
 		self.btn_V.clicked.connect(lambda ignore, graph='V' : self.binary_router(graph))
 		self.btn_W.clicked.connect(lambda ignore, graph='W' : self.binary_router(graph))
+
+		self.btn_M.clicked.connect(lambda ignore, graph='M' : self.binary_router(graph))
+		self.btn_V151.clicked.connect(lambda ignore, graph=r'V_{151}': self.binary_router(graph))
+		self.btn_V1939.clicked.connect(lambda ignore, graph=r'V_{1939}': self.binary_router(graph))
+
+		gname = r'S_{199}'
+		g = os.path.join('heule', gname)
+		self.btn_S199.clicked.connect(lambda ignore, graph=g, gname = gname : self.binary_router(graph, gname))
+
+		gname = r'G_{610}'
+		g = os.path.join('heule', gname)
+		self.btn_G610.clicked.connect(lambda ignore, graph=g, gname = gname : self.binary_router(graph, gname))
+
+		gname = r'G_{553}'
+		g = os.path.join('heule', gname)
+		self.btn_G553.clicked.connect(lambda ignore, graph=g, gname = gname : self.binary_router(graph, gname))
+
+
 		self.btn_moser.clicked.connect(lambda ignore, graph="Moser" : self.binary_router(graph))
 		self.btn_pentagon.clicked.connect(lambda ignore, graph='C5' :self.binary_router(graph))
 		self.btn_pentagram.clicked.connect(lambda ignore, graph='Pentagram' : self.binary_router(graph))
@@ -683,11 +730,11 @@ class GraphCalculatorDialog(QDialog, Ui_Graph_Calculator):
 			self.lb_mem.setPixmap(lb_pixmap)
 
 	def findGraph(self, graph):
-		graphs = ['H', 'J', 'K', 'L', 'T', 'U', 'V', 'W', 'M', "Moser", 
-		"C5","PG", "Pentagram"]
+		graphs = ['H', 'J', 'K', 'L', 'T', 'U', 'V', 'W', 'M', 'G', "Moser", 
+		"C5","PG", "Pentagram", r'V_{151}', r'V_{1939}']
 
-		graphs_fun = [H, J, K, L, T, lambda : print('Not implemented'), V, W, M,
-		 MoserSpindle, RegularPentagon, PetersenGraph, FStar]
+		graphs_fun = [H, J, K, L, T, lambda : print('Not implemented'), V, W, M, G,
+		 MoserSpindle, RegularPentagon, PetersenGraph, FStar, V151, V1939]
 		
 		for i in range(len(graphs)):
 			if graph == graphs[i]:
