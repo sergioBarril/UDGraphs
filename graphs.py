@@ -614,9 +614,8 @@ class J(UnitDistanceGraph):
 		UnitDistanceGraph.__init__(self)
 
 		A = H().minkowskiSum(H())
-		for v in list(A.graph.nodes):
-			if isclose(v.r, sqrt(3)):
-				A = A.union(H(v))
+		A = A.trim(sqrt(3))
+		A = A.minkowskiSum(H())		
 
 		self.graph = A.graph
 		self.update()
