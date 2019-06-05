@@ -668,6 +668,9 @@ class T(UnitDistanceGraph):
 		P = (A - B) + ZR
 		Q = (B - A) + Z
 
+		self.baseP = P
+		self.baseQ = Q
+
 		moser.add_edge(Q, B)
 		moser.add_edge(Q, Vertex(1,0))
 
@@ -685,8 +688,12 @@ class U(UnitDistanceGraph):
 		UnitDistanceGraph.__init__(self)
 
 		T1 = T()
-		T2 = T1.rotate((2*math.pi)/3, center = Vertex(0,0))
-		T3 = T2.rotate((2*math.pi)/3, center = Vertex(0,0))
+
+		T2 = T1.rotate((-2*math.pi)/3, center = Vertex(0,0))
+		T2 = T2.translate(T1.baseP)
+
+		T3 = T1.rotate((2*math.pi)/3, center = Vertex(0,0))
+		T3 = T3.translate(T1.baseQ)
 
 		myU = T1.union(T2)
 		myU = myU.union(T3)

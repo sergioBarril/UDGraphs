@@ -95,7 +95,7 @@ class GraphsDialog(QDialog, Ui_GraphsDialog):
 		graphs = ['H', 'J', 'K', 'L', 'T', 'U', 'V', 'W', 'M', "Moser", 
 		r"C_{5}","PG", "Pentagram", 'G', r'V_{151}', r'V_{1939}']
 
-		graphs_fun = [H, J, K, L, T, lambda : print('Not implemented'), V, W, M,
+		graphs_fun = [H, J, K, L, T, U, V, W, M,
 		 MoserSpindle, RegularPentagon, PetersenGraph, FStar, G, V151, V1939]
 		
 		for i in range(len(graphs)):
@@ -733,7 +733,7 @@ class GraphCalculatorDialog(QDialog, Ui_Graph_Calculator):
 		graphs = ['H', 'J', 'K', 'L', 'T', 'U', 'V', 'W', 'M', 'G', "Moser", 
 		"C5","PG", "Pentagram", r'V_{151}', r'V_{1939}']
 
-		graphs_fun = [H, J, K, L, T, lambda : print('Not implemented'), V, W, M, G,
+		graphs_fun = [H, J, K, L, T, U, V, W, M, G,
 		 MoserSpindle, RegularPentagon, PetersenGraph, FStar, V151, V1939]
 		
 		for i in range(len(graphs)):
