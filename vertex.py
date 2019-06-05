@@ -74,9 +74,6 @@ class Vertex:
 	def isColored(self):
 		return self.color > 0
 	
-	def color(self, color):
-		self.color = color
-
 	def rotate(self, i, k = None, center = None):
 		"""
 		Returns a vertex rotated with respect to the given center, or
