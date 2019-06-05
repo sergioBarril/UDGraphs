@@ -128,7 +128,7 @@ class TikzDocument():
 		if not hard:
 			command = "pdflatex -interaction=nonstopmode "
 		else:
-			command = "lualatex "
+			command = "lualatex -interaction=nonstopmode "
 
 		command += "--shell-escape --output-directory tikz {} {}".format(auxFiles, self.fname)
 		
