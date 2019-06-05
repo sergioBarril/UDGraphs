@@ -901,8 +901,9 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 	def draw_graph(self):
 		if self.randomName.isChecked():
 			fname = str(random.randint(1, 1000000000))
-		else:
-			fname = self.Gname
+		else: # We replace the parentheses so that we can open the file later
+			fname = self.Gname.replace('(', '{').replace(')', '}')
+
 
 		hard = self.G.n >= 650		
 		factor = self.drawScaling.value()			

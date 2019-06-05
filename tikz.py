@@ -93,9 +93,11 @@ class TikzDocument():
 		with open(self.fname, 'a') as f:
 			f.write("%%%%%%%%%% COLORING NODES %%%%%%%%%%%%%\n\n")
 			for v in self.G.nodes:
+				color = v.color				
 				if v.color == -1:
-					continue
-				nodes[v.color] += str(v.id) + ', '
+					color += 1				
+				
+				nodes[color] += str(v.id) + ', '
 
 			for i in range(colors + 1):
 				if nodes[i]:
@@ -124,7 +126,7 @@ class TikzDocument():
 			pdfFile = 'evince {}'.format(pdfFile)
 		
 		if not hard:
-			command = "pdflatex --halt-on-error "
+			command = "pdflatex -interaction=nonstopmode "
 		else:
 			command = "lualatex "
 
