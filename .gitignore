@@ -12,3 +12,5 @@ texLabels/
 *.drat
 env/
 *.synctex.gz
+*.e
+*.v
