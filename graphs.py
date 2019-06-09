@@ -185,12 +185,22 @@ class UnitDistanceGraph:
 		Minkowski sum of this graph and G.
 		"""
 
-		# Add all edges from self
-		M = copy.deepcopy(self)
+		M = None
 
-		# Add all edges from G
-		for e in G.graph.edges:
-			M.add_edge(e[0], e[1])
+		# If G has (0,0), the graph self will be in the sum
+		if Vertex(0,0) in G.graph.nodes:					
+			M = copy.deepcopy(self)
+
+		# If self has (0,0), G will be in the sum
+		if Vertex(0,0) in self.graph.nodes:
+			if M is not None: # If both graphs have (0,0)
+				M = self.union(G)
+			else:
+				M = copy.deepcopy(G)
+		
+		#If neither graph has (0,0)
+		if M is None:
+			M = UnitDistanceGraph()
 
 		# Set of sum nodes
 		new_nodes = { v + w for v in self.graph.nodes for w in G.graph.nodes if v + w not in M.graph.nodes}
@@ -212,39 +222,7 @@ class UnitDistanceGraph:
 			new_nodes.remove(x)
 
 		return M
-
-	def trimMinkowski(self, G, d):
-		""" Minkowski sum, trimming vertices at distance greater than d
-			This expects 2 graphs already trimmed to distance d, and the distance
-		"""
-		# Add all edges from self
-		M = copy.deepcopy(self)
-
-		# Add all edges from G
-		for e in G.graph.edges:
-			M.add_edge(e[0], e[1])
-
-		# Set of sum nodes
-		new_nodes = { v + w for v in self.graph.nodes for w in G.graph.nodes if (v+w).r < d + abs_tol}
-
-		# Add edges on them
-		for x in list(new_nodes):
-			for v in self.graph.nodes:
-				if v.isUnitDist(x):
-					M.add_edge(v, x)
-
-			for w in G.graph.nodes:
-				if w.isUnitDist(x):
-					M.add_edge(w, x)
-
-			for z in new_nodes:
-				if z.isUnitDist(x):
-					M.add_edge(x, z)
-
-			new_nodes.remove(x)
-
-		return M
-
+	
 	def negative_y(self):
 		"""
 		Returns the reflection of this graph with respect
@@ -274,12 +252,33 @@ class UnitDistanceGraph:
 
 		return triangles
 
-	def spindles(self):
-		spindles = 0
-		for v in self.graph.nodes:
-			spindles = max(spindles, self.num_spindles(v))
 
-		return spindles
+	def get_rhombus(self, u, v, w):
+		"""
+		Given a unit distance triangle, return all their unit rhombuses
+		Returns a dict with the fourth vertex of all rhombuses with
+		u, v and w.
+		"""
+
+		rhombuses = dict()
+
+		z = v.rotate(math.pi/3, center = u)
+		if z == w: # Rotated the wrong way.
+			v, w  = w, v
+			z = v.rotate(math.pi/3, center = u)
+
+		if z in self.graph[u] and z in self.graph[v]:
+			rhombuses[w] = z
+
+		z = w.rotate(-math.pi/3, center = u)
+		if z in self.graph[u] and z in self.graph[w]:
+			rhombuses[v] = z
+
+		z = w.rotate(math.pi/3, center = v)
+		if z in self.graph[v] and z in self.graph[w]:
+			rhombuses[u] = z
+
+		return rhombuses
 
 
 	def num_spindles(self, A):
@@ -294,10 +293,10 @@ class UnitDistanceGraph:
 		for pair in it.combinations(neighbours, 2): # For each triangle
 			v, w = pair
 			if v.isUnitDist(w):				
-				rhombuses = self.is_rhombus(A, v, w) # Get its rhombuses
+				rhombuses = self.get_rhombus(A, v, w) # Get its rhombuses
 				for tip1, tip2 in rhombuses.items():
 					if A == tip1: # If the vertex at study is not at the tip of the rhombus
-						spindles += self.spindles_in_rhombus(tip1, tip2, v, w) # (Tip mode)
+						spindles += self.spindles_in_rhombus(tip1, tip2, v, w, True) # (Tip mode)
 					elif v == tip1:
 						spindles += self.spindles_in_rhombus(tip1, tip2, A, w, False) # (A is not in the tip mode)
 					else: # w == tip1
@@ -330,8 +329,8 @@ class UnitDistanceGraph:
 			tip1N = self.graph[tip1] # Neighbours of tip1
 			tip2RN = self.graph[tip2R] # Neighbours of tip2R
 
-			# There's no need i think, because it's unit distance already, they should be
-			# neighbours no matter what. i'll leave this here tho.
+			# If the graph has edges on all its vertices at distance 1,
+			# this isn't necessary. But I'll leave this here just in case.
 			valid = vR in tip1N and wR and wR in self.graph[vR]
 			valid = valid and vR in tip2RN and wR in tip2RN
 			valid = valid and tip2 in tip2RN
@@ -351,36 +350,8 @@ class UnitDistanceGraph:
 			spindles += 1
 
 		if not tip_mode:
-			spindles /= 2		# revisar
+			spindles /= 2
 		return spindles
-
-	def is_rhombus(self, u, v, w):
-		"""
-		Given a unit distance triangle, return all their unit rhombuses
-		Returns a dict with the fourth vertex of all rhombuses with
-		u, v and w.
-		"""
-
-		rhombuses = dict()
-
-		z = v.rotate(math.pi/3, center = u)
-		if z == w:
-			v, w  = w, v
-			z = v.rotate(math.pi/3, center = u)
-
-		if z in self.graph[u] and z in self.graph[v]:
-			rhombuses[w] = z
-
-		z = w.rotate(-math.pi/3, center = u)
-		if z in self.graph[u] and z in self.graph[w]:
-			rhombuses[v] = z
-
-		z = w.rotate(math.pi/3, center = v)
-		if z in self.graph[v] and z in self.graph[w]:
-			rhombuses[u] = z
-
-		return rhombuses
-
 
 	def node_score(self, v):
 		"""
@@ -399,6 +370,15 @@ class UnitDistanceGraph:
 		return sorted(list(self.graph.nodes), reverse=True, key=self.node_score)
 
 
+	def spindles(self):
+		spindles = 0
+		for v in self.graph.nodes:
+			spindles = max(spindles, self.num_spindles(v))
+
+		return spindles
+	
+
+
 	#	**********************************************************************
 	#								COLORING
 	#	**********************************************************************
@@ -410,11 +390,6 @@ class UnitDistanceGraph:
 	def sat_color(self, colors = 4):
 		sat = UDGSat(self, colors = colors)
 		return sat.solve(color = True)
-
-	def uncolor_graph(self):
-		for v in self.sorted_nodes:
-			v.color = -1
-		self.update()
 
 	def search_vertex(self, v):
 		"""
@@ -490,21 +465,12 @@ class UnitDistanceGraph:
 		sat = UDGSat(self, colors)
 		sat.save_cnf(fname, randomMode = random)
 
-	def load_vertices(self, fname):
+	def load_graph(self, fname):
 		"""
-		Given a filename, this loads the vertices found in 'graphs/myFile.v'
+		Given a filename, this loads the graph with fname in 'graphs/fname.e'
 		"""
-		with open(os.path.join('graphs', fname + '.v'), 'r') as f:
-			self.n = int(f.readline())
-			
-			for line in f:
-				vx, vy = line.split()
-				self.add_node(Vertex(float(vx), float(vy)))
-
-	def load_edges(self, fname):
-		"""
-		Given a filename, this loads the edges found in 'graphs/myFile.e'
-		"""
+		self.__init__()
+		
 		with open(os.path.join('graphs', fname + '.e'), 'r') as f:
 			self.m = int(f.readline())
 
@@ -513,23 +479,19 @@ class UnitDistanceGraph:
 				v = Vertex(float(vx), float(vy))
 				w = Vertex(float(wx), float(wy))
 				self.add_edge(v, w)
-
-	def load_graph(self, fname):
-		"""
-		Given a filename, this loads the graph with fname in 'graphs/'
-		"""
-		self.__init__()
-		self.load_edges(fname)
 		self.update()
-
 
 	def cnf_trimming(self, cnfFile, dictFile):
 		"""
-		Given a filename, this loads the graph with the fname in 'cnf/'
+		Given a filename, this trims the current graph 
+		using the CNF formula in 'cnf/cnfFile.cnf'
+
+		It takes a dictFile as well, that must be located in cnf folder.
 		"""
 		vtoid = dict()
 		idtov = dict()
 		
+		# Load dict file
 		with open(os.path.join('cnf', dictFile), 'r') as f:
 			for line in f:
 				currLine = line.split()
@@ -568,13 +530,9 @@ class UnitDistanceGraph:
 
 		for v in list(self.graph.nodes):
 			if not vertices[vtoid[v]]:
-				print("REMOVING VERTEX")
 				self.remove_node(v)
 
 		self.update()
-
-
-
 
 	def draw_graph(self, fname, hard=False):
 		"""
@@ -583,6 +541,12 @@ class UnitDistanceGraph:
 		"""
 		tkz = TikzDocument(fname, self)
 		tkz.draw(hard)
+
+
+
+# ******************************************************
+# 			U N I T   D I S T A N C E   G R A P H S
+# ******************************************************
 
 class H(UnitDistanceGraph):
 	"""
@@ -728,7 +692,7 @@ class W(UnitDistanceGraph):
 	def __init__(self):
 		UnitDistanceGraph.__init__(self)
 
-		self.graph = V().trimMinkowski(V(), sqrt(3)).graph
+		self.graph = V().minkowskiSum(V()).trim(sqrt(3)).graph
 		self.update()
 
 class M(UnitDistanceGraph):
@@ -753,10 +717,6 @@ class M(UnitDistanceGraph):
 			centralH.append(self.search_vertex(Vertex(-1,0)))
 			centralH.append(self.search_vertex(Vertex(-0.5, -sqrt(3)/2)))
 			centralH.append(self.search_vertex(Vertex(0.5, -sqrt(3)/2)))
-
-			print('Central H:')
-			for v in centralH:
-				print(v)
 			
 			colors = [1, 2, 3]
 			
@@ -862,35 +822,13 @@ class PetersenGraph(UnitDistanceGraph):
 	"""
 	Unit distance representation of the petersen graph
 	"""	
-	def find_angle(self):
-		x = 1.49606
-		
-		pentagon_angle = 0.6*math.pi
-
-		v0 = Vertex(0,0)
-		v1 = Vertex(1,0)
-		v2 = v1.rotate(pentagon_angle, center = v0)
-
-		z1 = Vertex(10,10)
-		z2 = Vertex(0,0)
-
-		while not z1.isUnitDist(z2):
-			x -= 0.000000001
-			z1 = v0.rotate(-x, center = v1)
-			z2 = v0.rotate(pentagon_angle - x, center = v2)
-			if z1.dist(z2) < 1:
-				input('Angle x: {} dist: {}'.format(x, z1.dist(z2)))
-			if x < 1.4960521500057606:
-				return False
-		return x
-
 	def __init__(self):
 		UnitDistanceGraph.__init__(self)
 		P = RegularPentagon()
 		S = UnitDistanceGraph()
 		pentagon_angle = 0.6 * math.pi
 
-		x = self.find_angle()
+		x = 1.4960521549993508
 
 		v0 = Vertex(0,0)
 		v1 = Vertex(1,0)	
@@ -944,10 +882,10 @@ class G(UnitDistanceGraph):
 		Y.remove_node(Vertex(-1/3, 0))
 		
 		Ya = Y.rotate(16, 0.5, center = Vertex(-2,0))
-		# Ya = Ya.rotate(math.pi/2, center = Vertex(-2,0))
+		Ya = Ya.rotate(math.pi/2, center = Vertex(-2,0))
 
 		Yb = Y.rotate(16, -0.5, center = Vertex(-2, 0))
-		# Yb = Yb.rotate(math.pi/2, center = Vertex(-2, 0))		
+		Yb = Yb.rotate(math.pi/2, center = Vertex(-2, 0))		
 		
 		self.graph = Ya.union(Yb).graph
 		

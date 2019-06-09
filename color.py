@@ -3,20 +3,19 @@ import collections
 
 class ColoringGraph():
 	"""
-	Implements the coloring algorithm described
-	in de Grey's proofs
+	Implements the backtracking coloring algorithm 
+	described in de Grey's proofs
 	"""
-	def __init__(self, UDGraph, colors = 4, new = True, verbose=False):
+	def __init__(self, UDGraph, colors = 4, new = True):
 		self.graph = nx.Graph()
 		self.vtoid = dict()
 		self.idtov = dict()
 
 		self.colors = colors
-		self.verbose = verbose
 		self.new = new
 
 		self.banned_colors = collections.defaultdict(list)
-		self.uncolorable_nodes = collections.defaultdict(list)
+		self.decolorable_nodes = collections.defaultdict(list)
 
 		if new:
 			UDGraph.update_and_sort()		
@@ -25,7 +24,11 @@ class ColoringGraph():
 		self.copy_graph(UDGraph)
 
 
-	def translate_graph(self, UDGraph):		
+	def translate_graph(self, UDGraph):
+		"""
+		Given a UDGraph, maps every vertex to an incremental
+		index, filling both vtoid and idtov dictionaries.		
+		"""
 		i = 0
 		for v in UDGraph.sorted_nodes:
 			self.vtoid[v] = i
@@ -37,16 +40,28 @@ class ColoringGraph():
 			i +=1
 
 	def copy_graph(self, UDGraph):
+		"""
+		Using self.vtoid, rewrites UDGraph in self.graph using indices.
+		"""
 		for (v,w) in UDGraph.graph.edges:		
 			self.graph.add_edge(self.vtoid[v], self.vtoid[w])
 
 	def get_color(self, i):
+		"""
+		Returns the color of the node with index i
+		"""
 		return self.graph.nodes[i]['color']
 
 	def set_color(self, i, color):
+		"""
+		Changes the color of node with index i to color.
+		"""
 		self.graph.nodes[i]['color'] = color
 
 	def isColored(self, i):
+		"""
+		Returns True if the node has been colored, False otherwise
+		"""
 		return self.get_color(i) > 0
 
 	def available_colors(self, v):
@@ -62,6 +77,12 @@ class ColoringGraph():
 		return available
 
 	def color_node(self, v):
+		"""
+		Colors node v. Then check all of its neighbours.
+		If a neighbour only has one available color, color it.
+
+		Else, decolors v and all its neighbours colored in this iteration.
+		"""
 		remaining_colors = self.available_colors(v)		
 		if not remaining_colors:
 			return False
@@ -81,23 +102,38 @@ class ColoringGraph():
 							backtrack = True
 							break
 						else:
-							self.uncolorable_nodes[v].append(w)
+							self.decolorable_nodes[v].append(w)
 			if not backtrack:
 				return True
-			self.uncolor_node(v)
+			self.decolor_node(v)
 			backtrack = False
 		return False
 
-	def uncolor_node(self, v):
+	def decolor_node(self, v):
+		"""
+		Sets the color of v back to -1 (decoloring it)
+
+		Every node colored after it gets decolored as well.
+		"""
 		self.set_color(v, -1)
 
-		for w in self.uncolorable_nodes[v]:
-			self.uncolor_node(w)
+		for w in self.decolorable_nodes[v]:
+			self.decolor_node(w)
 		
-		self.uncolorable_nodes[v] = []
+		self.decolorable_nodes[v] = []
 
 
 	def color_graph(self):
+		"""
+		Colors the graph. colored_nodes is a list with all 'root' colored vertices
+		(that is, a vertex for which 'color_node' method was called from this function)
+
+		If there's a need to backtrack, the current vertex's banned_colors is cleared,
+		and the previous vertex color is banned -- we then try with another color.
+
+		This goes on until there's no vertex to backtrack -- in which case we stop,
+		or when the graph is colored.
+		"""
 		i = 0
 		n = self.graph.number_of_nodes()
 
@@ -110,11 +146,9 @@ class ColoringGraph():
 						j = colored_nodes.pop()						
 						self.banned_colors[j].append(self.get_color(j))
 						self.banned_colors[i] = []
-						self.uncolor_node(j)
+						self.decolor_node(j)
 						i = j
 					else:
-						if self.verbose:
-							print("This graph can't be colored with {} colors".format(self.colors))
 						return False
 				else:					
 					colored_nodes.append(i)
@@ -123,14 +157,16 @@ class ColoringGraph():
 				i += 1
 		return True
 
-	def color_original(self):
-		for i in self.graph.nodes:
-			self.idtov[i].color = self.get_color(i)
-
 	def color(self):
+		"""
+		Tries coloring the graph. If successful, it colors the original
+		graph
+		"""
+		
 		colored = self.color_graph()
-		if colored:
-			self.color_original()
+		if colored: # Coloring was successful -> color original graph
+			for i in self.graph.nodes:
+				self.idtov[i].color = self.get_color(i)
 			return True
 		else:
 			return False

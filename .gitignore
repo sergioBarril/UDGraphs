@@ -1,4 +1,7 @@
 __pycache__/
+build/
+appicon.ico
+main.spec
 .pytest_cache/
 *.aux
 *.log
@@ -14,3 +17,5 @@ env/
 *.synctex.gz
 *.e
 *.v
+*.exe
+dist/
