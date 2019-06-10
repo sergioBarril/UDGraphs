@@ -27,7 +27,6 @@ class TikzDocument():
 		self.factor = factor
 
 		self.vtoid = dict()
-		self.idtov = dict()
 
 	def open_new(self):
 		"""
@@ -44,7 +43,7 @@ class TikzDocument():
 \begin{document}
 
 \renewcommand*{\VertexSmallMinSize}{2pt}
-\renewcommand*{\VertexInnerSep}{1pt}
+\renewcommand*{\VertexInnerSep}{1.3pt}
 \renewcommand*{\EdgeLineWidth}{0.2pt}
 
 \begin{tikzpicture}
@@ -72,8 +71,7 @@ class TikzDocument():
 			for v in self.G.nodes:
 				f.write('\t\\Vertex[x={}, y={}]{{{}}}\n'.format(round(self.factor*v.x, 3), round(self.factor*v.y, 3), i))
 				
-				self.vtoid[v] = i
-				self.idtov[i] = v
+				self.vtoid[v] = i				
 				
 				i += 1
 
@@ -88,10 +86,11 @@ class TikzDocument():
 					if (v, w) in self.G.edges:
 						f.write('\t\\Edge({})({})\n'.format(self.vtoid[v], self.vtoid[w]))
 
-	def add_colors(self, colors = 6):
+	def add_colors(self):
 		"""
 		Adds all the colors to the vertices
 		"""
+		colors = 6
 		col_dict = {0: 'yellow!15', 1: 'yellow!30', 2:'red!30', 3:'blue!30', 4:'green!30', 5:'orange!45', 6:'cyan!30'}
 
 		nodes = [""]*(colors + 1)

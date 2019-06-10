@@ -5,19 +5,28 @@ from graphs import *
 
 
 class UDGSat():
+	"""
+	Implements graph coloring using logical formulas in Conjunctive Normal Form (CNF).	
+	"""
+
 	def __init__(self, UDG, colors):
 		self.UDG = UDG
 		self.toId, self.toNode = self.translate()
 		self.k = colors
 		self.cnf = []
 
-		# self.only_central_clause()
+		# self.unique_central_clause()
 		self.triangle_clause()
 		self.hasColor_clause()		
 		self.edgeColor_clause()
 
 	
-	def only_central_clause(self):
+	def unique_central_clause(self):
+		"""
+		This adds the clauses so that the vertex (0,0) has a
+		unique color
+		"""
+		
 		v0 = self.UDG.search_vertex(Vertex(0,0))		
 		self.cnf.append([self.toId[v0]])
 
@@ -47,7 +56,6 @@ class UDGSat():
 				f.write('{} {} {}\n'.format(i, v.x, v.y))
 
 	def solve(self, color = False):
-		print("Solving...")
 		random.shuffle(self.cnf)
 		solution = pycosat.solve(self.cnf)
 
@@ -69,7 +77,6 @@ class UDGSat():
 						k = (i // self.UDG.n) + 1
 					self.toNode[vid].color = k
 		
-		print("Solved")
 		return True
 
 	def translate(self):
