@@ -21,7 +21,7 @@ import collections
 import re
 
 
-def tex2png(formula, fname, fontsize=12, dpi=300):
+def texToPng(formula, fname, fontsize=12, dpi=300):
 	folder = os.path.join('GUI', 'texLabels')
 	file = os.path.join(folder, fname + '.png')
 	fig = plt.figure(figsize=(0.01, 0.01))
@@ -711,7 +711,7 @@ class GraphCalculatorDialog(QDialog, Ui_Graph_Calculator):
 		if len(name) > 5:
 			fontsize = 8
 
-		img = tex2png(formula, name, fontsize)
+		img = texToPng(formula, name, fontsize)
 		lb_pixmap = QPixmap(img)
 		self.lb_calc.setPixmap(lb_pixmap)
 
@@ -724,7 +724,7 @@ class GraphCalculatorDialog(QDialog, Ui_Graph_Calculator):
 			if len(memName) > 5:
 				memFontsize = 6
 			
-			img = tex2png(memFormula, memName, memFontsize)
+			img = texToPng(memFormula, memName, memFontsize)
 			
 			lb_pixmap = QPixmap(img)
 			self.lb_mem.setPixmap(lb_pixmap)
@@ -838,7 +838,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 		if len(name) > 5:
 			fontsize = 8
 		
-		img = tex2png(formula, name, fontsize)
+		img = texToPng(formula, name, fontsize)
 		lb_G_pixmap = QPixmap(img)
 		self.lb_G.setPixmap(lb_G_pixmap)
 

@@ -26,6 +26,16 @@ class TestColoring():
 				z = G.search_vertex(w)
 				assert z.isColored()
 				assert z.color != v.color
+	def check_unit(self, G):
+		for v, w in G.graph.edges:
+			assert v.isUnitDist(w)
+	
+	def test_G(self):
+		myG = UnitDistanceGraph()
+		myG.load_graph('G')
+		myG.sat_color(colors = 5)
+		self.check_coloring(myG)
+		self.check_unit(myG)
 
 	def test_610(self):
 		G = UnitDistanceGraph()

@@ -79,6 +79,7 @@ class Ui_MainWindow(object):
         self.lb_G.setFont(font)
         self.lb_G.setFrameShape(QtWidgets.QFrame.Box)
         self.lb_G.setText("")
+        self.lb_G.setIndent(0)
         self.lb_G.setObjectName("lb_G")
         self.verticalLayoutWidget = QtWidgets.QWidget(self.centralwidget)
         self.verticalLayoutWidget.setGeometry(QtCore.QRect(100, 480, 601, 101))

@@ -13,8 +13,6 @@ from sat import UDGSat
 from tikz import TikzDocument
 
 
-abs_tol = 0.02
-
 class UnitDistanceGraph:
 	"""Graph with edges of distance 1"""
 
@@ -149,7 +147,7 @@ class UnitDistanceGraph:
 		Removes all vertices (and edges adjacent to those) that are at greater distance
 		than d from (0,0)
 		"""
-
+		abs_tol = 0.002
 
 		for node in list(self.graph.nodes):
 			if node.r > d + abs_tol:
@@ -341,6 +339,12 @@ class UnitDistanceGraph:
 		
 		if is_valid_rhombus(self, 1, tip1, tip2, v, w):
 			spindles += 1
+
+		# If we counted this in tip_mode as well, we'd be counting
+		# it twice, since it would make a rhombus we'll analyse later anyway.
+		
+		# Thus, in tip_mode we'll only rotate with the center of the rotation
+		# in the vertex of study counterclockwise.
 		if not tip_mode:
 			if is_valid_rhombus(self, -1, tip1, tip2, v, w):
 				spindles += 1
@@ -349,6 +353,9 @@ class UnitDistanceGraph:
 		if is_valid_rhombus(self, -1, tip2, tip1, v, w):
 			spindles += 1
 
+		# If the vertex we're studying isn't at the tip
+		# We'll be counting the same rhombus twice (since it
+		# has two triangles, and that vertex will be in both)
 		if not tip_mode:
 			spindles /= 2
 		return spindles
@@ -371,6 +378,9 @@ class UnitDistanceGraph:
 
 
 	def spindles(self):
+		"""
+		Returns the number of spindles contained in the graph.
+		"""
 		spindles = 0
 		for v in self.graph.nodes:
 			spindles = max(spindles, self.num_spindles(v))
@@ -665,7 +675,7 @@ class U(UnitDistanceGraph):
 
 class V(UnitDistanceGraph):
 	"""
-	Unit distance graph with 31 vertices and 60 (?) edges. It's 5 regular hexagons slightly rotated.
+	Unit distance graph with 31 vertices and 60 edges. It's 5 regular hexagons slightly rotated.
 	"""
 	def __init__(self):
 		UnitDistanceGraph.__init__(self)
@@ -880,7 +890,8 @@ class G(UnitDistanceGraph):
 
 		Y.remove_node(Vertex(1/3, 0))
 		Y.remove_node(Vertex(-1/3, 0))
-		
+	
+
 		Ya = Y.rotate(16, 0.5, center = Vertex(-2,0))
 		Ya = Ya.rotate(math.pi/2, center = Vertex(-2,0))
 
